@@ -1,0 +1,18 @@
+{
+	"RequestedObject": [
+		{
+			"TargetId": 509,
+			"TargetName": "Data Gateway - Hybrid",
+			"Connection": {
+				"Id": 234,
+				"LocationAlias": "f61d9957-",
+				"LastUpdated": "2019-07-23T19:46:21.413",
+				"DatagatewayConnector": {
+					"ConnectorType": "ArcherTech.Datasource.Content.GenericSql.GenericSqlDataSource"
+				}
+			}
+		}
+	],
+	"IsSuccessful": true,
+	"ValidationMessages": null
+}

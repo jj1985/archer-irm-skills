@@ -1,0 +1,142 @@
+{
+	"RequestedObject": [
+		{
+			"ModuleId": 537,
+			"ModuleName": "537",
+			"DataGatewayFieldMaps": [
+				{
+					"TargetId": 335,
+					"TargetName": "ARCHER-335",
+					"Connections": [
+						{
+							"Name": "GRDGORCL",
+							"FieldMapping": [
+								{
+									"SourceFieldId": "IMAGENAME",
+									"ArcherFieldId": 22031
+								},
+								{
+									"SourceFieldId": "!#$&\\+=-|]{}{}",
+									"ArcherFieldId": 22032
+								},
+								{
+									"SourceFieldId": "!#$_&_[]=-\\|]{}{}",
+									"ArcherFieldId": 22033
+								},
+								{
+									"SourceFieldId": "ASD!@$%#'",
+									"ArcherFieldId": 22034
+								},
+								{
+									"SourceFieldId": "COLUMN WITH SPACES",
+									"ArcherFieldId": 22035
+								}
+							]
+						},
+						{
+							"Name": "GRDGSQL",
+							"FieldMapping": [
+								{
+									"SourceFieldId": "ImageName",
+									"ArcherFieldId": 22036
+								},
+								{
+									"SourceFieldId": "~`!@#$%^_-+={[}]|\\;:\"'<,>.?/",
+									"ArcherFieldId": 22037
+								},
+								{
+									"SourceFieldId": "~`!@#$%^&*()_-+={[}]|\\;:\"'<,>.?/",
+									"ArcherFieldId": 22038
+								},
+								{
+									"SourceFieldId": "ASD!@$%#'",
+									"ArcherFieldId": 22039
+								},
+								{
+									"SourceFieldId": "textCol LEVEL TWO",
+									"ArcherFieldId": 22040
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"ModuleId": 539,
+			"ModuleName": "539",
+			"DataGatewayFieldMaps": [
+				{
+					"TargetId": 337,
+					"TargetName": "Containers",
+					"Connections": [
+						{
+							"Name": "SQLCON",
+							"FieldMapping": [
+								{
+									"SourceFieldId": "ContainerName",
+									"ArcherFieldId": 22054
+								},
+								{
+									"SourceFieldId": "CreateDate",
+									"ArcherFieldId": 22055
+								},
+								{
+									"SourceFieldId": "ContainerCost",
+									"ArcherFieldId": 22056
+								},
+								{
+									"SourceFieldId": "IpAddress",
+									"ArcherFieldId": 22057
+								},
+								{
+									"SourceFieldId": "ContainerAge",
+									"ArcherFieldId": 22058
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"ModuleId": 577,
+			"ModuleName": "577",
+			"DataGatewayFieldMaps": [
+				{
+					"TargetId": 375,
+					"TargetName": "Only SQL ARCHER-68342",
+					"Connections": [
+						{
+							"Name": "SQLCONS",
+							"FieldMapping": [
+								{
+									"SourceFieldId": "ImageName",
+									"ArcherFieldId": 22401
+								},
+								{
+									"SourceFieldId": "~`!@#$%^_-+={[}]|\\;:\"'<,>.?/",
+									"ArcherFieldId": 22402
+								},
+								{
+									"SourceFieldId": "~`!@#$%^&*()_-+={[}]|\\;:\"'<,>.?/",
+									"ArcherFieldId": 22403
+								},
+								{
+									"SourceFieldId": "textCol LEVEL TWO",
+									"ArcherFieldId": 22404
+								},
+								{
+									"SourceFieldId": "ASD!@$%#'",
+									"ArcherFieldId": 22405
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	],
+	"IsSuccessful": true,
+	"ValidationMessages": []
+}

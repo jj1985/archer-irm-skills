@@ -1,0 +1,25 @@
+{
+	"ConnectorType": "ArcherTech.Datasource.Content.GenericSql.GenericSqlDataSource",
+	"Properties": [
+		{
+			"Name": "dbProviderType",
+			"Value": "System.Data.SqlClient"
+		},
+		{
+			"Name": "connectionString",
+			"Value": "Data Source=(local);Initial Catalog=EXT_DB;Integrated Security=True;TransparentNetworkIPResolution=False"
+		},
+		{
+			"Name": "tableName",
+			"Value": "EXT_SR"
+		},
+		{
+			"Name": "idColumnName",
+			"Value": "ext_sr_id"
+		},
+		{
+			"Name": "idColumnType",
+			"Value": "int"
+		}
+	]
+}

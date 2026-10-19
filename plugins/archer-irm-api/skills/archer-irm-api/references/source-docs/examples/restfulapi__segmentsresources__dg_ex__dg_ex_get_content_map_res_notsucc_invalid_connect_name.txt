@@ -1,0 +1,17 @@
+{
+	"RequestedObject": null,
+	"IsSuccessful": false,
+	"ValidationMessages": [
+		{
+			"Reason": "Validation",
+			"Severity": 3,
+			"MessageKey": "ValidationMessageTemplates:InvalidDataGatewayConnection",
+			"Description": "Connection name:NWIT is invalid",
+			"Location": -1,
+			"ErroredValue": null,
+			"Validator": "ArcherTech.Kernel.Brokers.Integration.DataGatewayBroker, ArcherTech.Kernel, Version=9.9.84.1043, Culture=neutral, PublicKeyToken=null",
+			"XmlData": "<ROOT><Connection order=\"1\">NWIT</Connection></ROOT>",
+			"ResourcedMessage": "Connection : NWIT is invalid"
+		}
+	]
+}

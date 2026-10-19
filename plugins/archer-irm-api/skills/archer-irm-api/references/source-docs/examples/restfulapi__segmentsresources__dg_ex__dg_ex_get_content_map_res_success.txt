@@ -1,0 +1,26 @@
+{
+	"RequestedObject": {
+		"TargetId": 328,
+		"ContentMaps": [
+			{
+				"ContentPartId": "INC-1",
+				"TrackingId": 249457
+			},
+			{
+				"ContentPartId": "INC-2",
+				"TrackingId": 249459
+			},
+			{
+				"ContentPartId": "INC-3",
+				"TrackingId": 249461
+			},
+			{
+				"ContentPartId": "INC-4",
+				"TrackingId": 249462
+			}
+		],
+		"LocationAlias": "NWI"
+	},
+	"IsSuccessful": true,
+	"ValidationMessages": null
+}

@@ -1,0 +1,10 @@
+{
+	"TargetId": 328,
+	"LocationAlias": "STIG_DATA",
+	"ContentMaps": [
+		{
+			"TrackingId": 249457,
+			"ContentPartId": "1"
+		}
+	]
+}

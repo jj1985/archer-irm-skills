@@ -1,0 +1,27 @@
+{
+  "name": "archer-irm",
+  "owner": {
+    "name": "jj1985"
+  },
+  "metadata": {
+    "description": "Plugins for integrating with and automating the Archer IRM platform APIs",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "archer-irm-api",
+      "description": "Archer IRM API skill: RESTful Platform API, V2 API, Content API (OData), Data Gateway, SOAP Web Services and NGRX, with an OpenAPI 3.1 spec, references, a documentation snapshot and Python clients.",
+      "version": "1.0.0",
+      "source": "./plugins/archer-irm-api",
+      "author": {
+        "name": "jj1985",
+        "url": "https://github.com/jj1985"
+      },
+      "homepage": "https://github.com/jj1985/archer-irm-skills",
+      "repository": "https://github.com/jj1985/archer-irm-skills",
+      "license": "MIT",
+      "keywords": ["archer", "archer-irm", "rsa-archer", "grc", "irm", "rest-api", "soap", "odata", "openapi", "integration"],
+      "category": "Developer Tools"
+    }
+  ]
+}

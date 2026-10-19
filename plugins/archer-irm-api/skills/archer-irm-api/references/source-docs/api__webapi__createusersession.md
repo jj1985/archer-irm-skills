@@ -1,0 +1,3 @@
+# CreateUserSession
+
+**Important:** This method is [Disabled](deprecated_methods.htm). Use the [general.CreateUserSessionFromInstance](createusersessionfrominstance.htm) method and provide an instance name. Update any legacy content that you have to ensure continued compatibility.

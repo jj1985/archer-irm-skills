@@ -1,0 +1,24 @@
+{
+	"RequestedObject": {
+		"ProcessedIds": [
+			249467
+		],
+		"RejectedIds": [
+			249458
+		]
+	},
+	"IsSuccessful": true,
+	"ValidationMessages": [
+		{
+			"Reason": "Validation",
+			"Severity": 2,
+			"MessageKey": "ValidationMessageTemplates:ContentNotValid",
+			"Description": " Invalid Tracking ID: 249458",
+			"Location": -1,
+			"ErroredValue": null,
+			"Validator": "ArcherTech.Kernel.Brokers.Integration.DataGatewayBroker, ArcherTech.Kernel, Version=9.9.84.1051, Culture=neutral, PublicKeyToken=null",
+			"XmlData": null,
+			"ResourcedMessage": "Please enter valid content Id and re-try."
+		}
+	]
+}

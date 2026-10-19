@@ -1,0 +1,62 @@
+{
+  "skill_name": "archer-irm-api",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Write a Python script that logs in to our Archer instance, finds the Risk Register application's level and field IDs, and creates a risk record with a text title, a numeric score, a values-list rating and a cross-reference to a business unit. Credentials should come from environment variables.",
+      "expected_output": "A runnable Python script: REST login via POST /platformapi/core/security/login, 'Archer session-id=' auth header, metadata discovery of module/level/field definitions/values-list values, POST /platformapi/core/content with FieldContents using correct Type numbers (1 text, 2 numeric, 4 values list, 9 cross-reference) and value shapes, IsSuccessful checks, logout.",
+      "files": [],
+      "expectations": [
+        "Auth header scheme: sends 'Authorization: Archer session-id=<token>' (not Bearer, not a bare token)",
+        "Login: POST /platformapi/core/security/login with InstanceName/Username/UserDomain/Password body and reads SessionToken (RequestedObject.SessionToken or top-level) from the response",
+        "Credentials come from environment variables and none are hardcoded",
+        "Discovers IDs at runtime via metadata endpoints (system/application, system/level/module/<id>, system/fielddefinition/level/<id>) instead of hardcoding field IDs",
+        "Resolves the values-list value ID from valueslistvalue metadata (e.g. system/valueslistvalue/flat/valueslist/<RelatedValuesListId>) and sends numeric IDs, not the value text",
+        "FieldContents Type numbers correct: text=1, numeric=2, values list=4, cross-reference=9",
+        "Value shapes correct: text string, numeric number, values list {\"ValuesListIds\":[id]}, cross-reference [{\"ContentId\":n}]",
+        "Create call is POST /platformapi/core/content with body {\"Content\":{\"LevelId\":..,\"FieldContents\":{\"<fieldId>\":{\"Type\":..,\"FieldId\":..,\"Value\":..}}}} and FieldContents keyed by field ID",
+        "Checks IsSuccessful / ValidationMessages in the response envelope (does not rely on HTTP status alone) and reads RequestedObject.Id as the new record ID",
+        "Resolves the Business Unit cross-reference target by looking up an actual content ID (or takes it as input) rather than inventing one silently",
+        "Logs out (POST security/logout) or otherwise terminates the session, ideally in a finally block",
+        "Warns that invalid/ignored writes can still return IsSuccessful true and re-reads the record to verify (or documents that caveat)",
+        "The Python script is syntactically valid (py_compile passes)"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "We need to export every record from the Vendors application to CSV nightly. Which Archer API should we use, and can you show the code?",
+      "expected_output": "Recommends the Content API (OData /contentapi/<LevelAlias>) with $top/$skip paging at 1,000 rows per page (or @odata.nextLink), flat alias-keyed rows, writes CSV; handles auth and session logout; flags REST content/contentid as per-record and SOAP search as the alternative for filters.",
+      "files": [],
+      "expectations": [
+        "Recommends the Content API (OData /contentapi/<LevelAlias>) as the primary choice for a bulk export",
+        "Pages the Content API with skip/top (or $skip/$top) at a 1,000-row page size and loops until a short page; does not assume one call returns everything",
+        "Auth header scheme: 'Authorization: Archer session-id=<token>' (or ArcherSessionCookie cookie), obtained via POST /platformapi/core/security/login",
+        "Discovers the entity set / alias via GET /contentapi/ or $metadata instead of guessing the alias",
+        "Flattens list-valued fields (values lists, cross-references) into CSV cells and writes a header from the union of keys",
+        "Credentials from environment variables; session is logged out when the job ends",
+        "Handles failures: raises on HTTP errors and/or re-logins on 401 expiry for a long nightly run",
+        "States Content API limits (attachments/images/matrix/external links not exposed; use REST for those) or mentions SOAP ExecuteSearch/REST as alternatives with trade-offs",
+        "Includes nightly scheduling guidance (cron / Task Scheduler) or a PAT recommendation for unattended automation",
+        "The Python code is syntactically valid (py_compile passes)"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Build the SOAP SearchReport XML to find all Policies records updated in the last 30 days whose status values list is 'Draft', paged 200 at a time. Show the ExecuteSearch call too.",
+      "expected_output": "Valid SearchReport XML (PageSize 200, DisplayFields, Criteria with ModuleCriteria, Filter with a ValueListFilterCondition/Operator for status and a DateComparisonFilterCondition with time-based Last Updated operator for 30 days), plus ExecuteSearch(sessionToken, searchOptions, pageNumber) with paging loop; uses non-deprecated SOAP methods.",
+      "files": [],
+      "expectations": [
+        "Well-formed XML with root <SearchReport> and <PageSize>200</PageSize>",
+        "Includes <DisplayFields> and <Criteria><ModuleCriteria><Module>..</Module> for the Policies application (ID or GUID, placeholders flagged)",
+        "Status condition uses ValueListFilterCondition with Field, Operator (Equals or Contains) and Values/Value holding the Draft value ID/GUID (not the text 'Draft')",
+        "30-day condition uses DateOffsetFilterCondition with Operator LastXDays and Value 30 on the Last Updated field (a DateComparison/DateRange with a computed date is acceptable only if explained)",
+        "Both conditions sit in one <Filter><Conditions> (optionally with OperatorLogic '1 AND 2') so they combine with AND",
+        "Shows ExecuteSearch(sessionToken, searchOptions, pageNumber) on search.asmx with the SearchReport as the searchOptions string (XML-escaped in the SOAP envelope or via the helper script)",
+        "Paging loop increments pageNumber starting at 1 until a page returns fewer than 200 records",
+        "Gets the session with general.CreateUserSessionFromInstance (not the disabled CreateUserSession) and terminates it with TerminateSession",
+        "Uses no deprecated/disabled search methods (SearchRecords, RetrieveSearchResultsPage*, CheckSearchStatus*, SearchRecordsByField)",
+        "Tells the user how to look up the Policies module ID/GUID, Status field ID/GUID and the Draft value ID (GUID preferred in search XML)"
+      ]
+    }
+  ]
+}

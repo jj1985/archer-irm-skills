@@ -1,0 +1,54 @@
+[
+    {
+        "Links": [],
+        "RequestedObject": {
+            "Id": 184626,
+            "LevelId": 342,
+            "SequentialId": 2,
+            "FieldContents": {
+                "18488": {
+                    "Type": 6,
+                    "FieldId": 18488,
+                    "UpdateInformation": {
+                        "CreateDate": null,
+                        "UpdateDate": null,
+                        "CreateLogin": null,
+                        "UpdateLogin": null
+                    }
+                }
+            },
+            "CheckSum": null,
+            "LastUpdated": "2019-05-14T20:18:40.25",
+            "Version": 3,
+            "Identity": {
+                "BaseContentId": 184626,
+                "Locators": [
+                    {
+                        "Identity": {
+                            "Value": 184626
+                        },
+                        "Location": {
+                            "Alias": "SYS_REF"
+                        }
+                    },
+                    {
+                        "Identity": {
+                            "Value": 184626
+                        },
+                        "Location": {
+                            "Alias": "ARCHER"
+                        }
+                    }
+                ]
+            },
+            "UpdateInformation": {
+                "CreateDate": "2019-05-14T20:17:57.693",
+                "UpdateDate": "2019-05-14T20:18:40.25",
+                "CreateLogin": 2,
+                "UpdateLogin": 2
+            }
+        },
+        "IsSuccessful": true,
+        "ValidationMessages": []
+    }
+]

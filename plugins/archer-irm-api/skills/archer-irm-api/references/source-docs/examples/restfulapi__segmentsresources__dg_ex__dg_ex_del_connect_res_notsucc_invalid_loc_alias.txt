@@ -1,0 +1,19 @@
+{
+	"RequestedObject": {
+		"JobId": null
+	},
+	"IsSuccessful": false,
+	"ValidationMessages": [
+		{
+			"Reason": "Validation",
+			"Severity": 3,
+			"MessageKey": "ValidationMessageTemplates:InvalidDataGatewayConnection",
+			"Description": "Connection name:NW is invalid",
+			"Location": -1,
+			"ErroredValue": null,
+			"Validator": "ArcherTech.Kernel.Brokers.Integration.DataGatewayBroker, ArcherTech.Kernel, Version=9.9.84.1051, Culture=neutral, PublicKeyToken=null",
+			"XmlData": "<ROOT><Connection order=\"1\">NW</Connection></ROOT>",
+			"ResourcedMessage": "Connection : NW is invalid"
+		}
+	]
+}

@@ -1,0 +1,33 @@
+{
+    "RequestedObject": {
+        "ProcessedIds": [],
+        "RejectedIds": [
+            123006
+        ]
+    },
+    "IsSuccessful": false,
+    "ValidationMessages": [
+        {
+            "Reason": "Validation",
+            "Severity": 2,
+            "MessageKey": "ValidationMessageTemplates:InvalidDatagatewayLevelContentMapping",
+            "Description": "TargetId: 329 does not contain following contents: 123006",
+            "Location": -1,
+            "ErroredValue": null,
+            "Validator": "ArcherTech.Kernel.Brokers.Integration.DataGatewayBroker, ArcherTech.Kernel, Version=9.9.84.1040, Culture=neutral, PublicKeyToken=null",
+            "XmlData": "<ROOT><LevelId order=\"1\">329</LevelId><ContentIds order=\"2\">123006</ContentIds></ROOT>",
+            "ResourcedMessage": "TargetId: 329 does not contain following contents: 123006"
+        },
+        {
+            "Reason": "Validation",
+            "Severity": 3,
+            "MessageKey": "ValidationMessageTemplates:ContentNotValid",
+            "Description": "All the Tracking Ids are not valid for this Target",
+            "Location": -1,
+            "ErroredValue": null,
+            "Validator": "ArcherTech.Kernel.Brokers.Integration.DataGatewayBroker, ArcherTech.Kernel, Version=9.9.84.1040, Culture=neutral, PublicKeyToken=null",
+            "XmlData": null,
+            "ResourcedMessage": "Please enter valid content Id and re-try."
+        }
+    ]
+}

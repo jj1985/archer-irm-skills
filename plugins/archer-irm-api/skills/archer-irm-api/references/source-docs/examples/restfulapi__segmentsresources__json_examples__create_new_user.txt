@@ -1,0 +1,86 @@
+{
+    "Password": "Password123$",
+    "Notification": true,
+    "Roles": [
+      73,
+      76,
+      100
+    ],
+    "Groups": [
+      141,
+      84
+    ],
+    "User": {
+      "FirstName": "John",
+      "MiddleName": "Micheal",
+      "LastName": "Doe",
+      "Username": "jdoe",
+      "AccountStatus": 1,
+      "DomainId": null,
+      "SecurityId": 1,
+      "LanguageId": 1,
+      "Locale": "en-US",
+      "TimeZoneId": "Eastern Standard Time",
+      "Address": "<p>123 Main St.
+Kansas City, KS 66112</p>",
+      "Company": "ABC",
+      "Title": "My Title",
+      "AdditionalNote": "This is my additional notes",
+      "ForcePasswordChange": true,
+      "EnableApproveContentByEmail": false
+    },
+    "Contacts": [
+      {
+        "ContactType": 7,
+        "ContactSubType": 2,
+        "Value": "john.doe@abc.com",
+        "IsDefault": true
+      },
+      {
+        "ContactType": 7,
+        "ContactSubType": 2,
+        "Value": "john.doe2@abc.com"
+      },
+      {
+        "ContactType": 7,
+        "ContactSubType": 2,
+        "Value": "john.doe3@abc.com"
+      },
+      {
+        "ContactType": 7,
+        "ContactSubType": 2,
+        "Value": "john.doe4@abc.com"
+      },
+      {
+        "ContactType": 7,
+        "ContactSubType": 2,
+        "Value": "john.doe5@abc.com"
+      },
+      {
+        "ContactType": 9,
+        "ContactSubType": 1,
+        "Value": "111-111-1111",
+        "IsDefault": true
+      },
+      {
+        "ContactType": 9,
+        "ContactSubType": 2,
+        "Value": "222-222-2222"
+      },
+      {
+        "ContactType": 9,
+        "ContactSubType": 2,
+        "Value": "333-333-333"
+      },
+      {
+        "ContactType": 9,
+        "ContactSubType": 2,
+        "Value": "444-444-4444"
+      },
+      {
+        "ContactType": 9,
+        "ContactSubType": 2,
+        "Value": "555-555-5555"
+      }
+    ]
+}

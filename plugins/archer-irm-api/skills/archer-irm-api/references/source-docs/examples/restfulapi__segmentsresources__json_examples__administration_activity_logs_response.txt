@@ -1,0 +1,16 @@
+﻿{ 
+
+            "InitiatingUser": "Administrator, System ",
+            "UserId": null,
+            "ModuleId": 635,
+            "ModuleName": null,
+            "LevelId":123,
+            "LevelName":"level2",
+            "ObjectName": null,
+            "ActionType": "Application Creation",
+            "PropertyName": "",
+            "NewValue": "True",
+            "OldValue": "False",
+            "Timestamp": "2025-03-26T16:33:25.867",
+            "SectionName":""
+      }

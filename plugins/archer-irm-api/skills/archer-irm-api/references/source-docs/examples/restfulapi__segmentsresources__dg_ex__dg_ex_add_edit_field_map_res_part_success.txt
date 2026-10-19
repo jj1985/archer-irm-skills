@@ -1,0 +1,37 @@
+{
+	"RequestedObject": {
+		"ProcessedIds": [
+			22405,
+			22404
+		],
+		"RejectedIds": [
+			123,
+			96
+		]
+	},
+	"IsSuccessful": false,
+	"ValidationMessages": [
+		{
+			"Reason": "Validation",
+			"Severity": 2,
+			"MessageKey": "ValidationMessageTemplates:InvalidDataGatewayConnectionOrLevel",
+			"Description": "Either the targetId: 375 or connection: GENERICMYSQL is invalid",
+			"Location": -1,
+			"ErroredValue": null,
+			"Validator": "ArcherTech.Kernel.Brokers.Integration.DataGatewayBroker, ArcherTech.Kernel, Version=9.9.84.1039, Culture=neutral, PublicKeyToken=null",
+			"XmlData": "<ROOT><LevelId order=\"1\">375</LevelId><Connection order=\"2\">GENERICMYSQL</Connection></ROOT>",
+			"ResourcedMessage": "Either the targetId: 375 or connection: GENERICMYSQL is invalid"
+		},
+		{
+			"Reason": "Validation",
+			"Severity": 2,
+			"MessageKey": "ValidationMessageTemplates:InvalidDatagatewayLevelFieldMapping",
+			"Description": "TargetId: 375 does not contain following fields: 123,96",
+			"Location": -1,
+			"ErroredValue": null,
+			"Validator": "ArcherTech.Kernel.Brokers.Integration.DataGatewayBroker, ArcherTech.Kernel, Version=9.9.84.1039, Culture=neutral, PublicKeyToken=null",
+			"XmlData": "<ROOT><LevelId order=\"1\">375</LevelId><FieldIds order=\"2\">123,96</FieldIds></ROOT>",
+			"ResourcedMessage": "TargetId: 375 does not contain following field(s): 123,96"
+		}
+	]
+}

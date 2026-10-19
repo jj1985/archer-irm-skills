@@ -1,0 +1,25 @@
+{
+	"RequestedObject": {
+		"ProcessedIds": null,
+		"RejectedIds": [
+			1234,
+			5678,
+			9101,
+			1121
+		]
+	},
+	"IsSuccessful": false,
+	"ValidationMessages": [
+		{
+			"Reason": "Validation",
+			"Severity": 3,
+			"MessageKey": "ValidationMessageTemplates:ForbiddenFields",
+			"Description": "DataGateway does not support following fields: {1234, 5678, 9101, 1121}",
+			"Location": -1,
+			"ErroredValue": null,
+			"Validator": "ArcherTech.Kernel.Brokers.Integration.DataGatewayBroker, ArcherTech.Kernel, Version=9.9.84.1039, Culture=neutral, PublicKeyToken=null",
+			"XmlData": null,
+			"ResourcedMessage": "DataGateway does not support following fields: {1234, 5678, 9101, 1121}"
+		}
+	]
+}

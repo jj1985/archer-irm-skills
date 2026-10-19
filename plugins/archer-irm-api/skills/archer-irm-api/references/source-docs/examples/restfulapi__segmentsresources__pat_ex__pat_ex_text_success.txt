@@ -1,0 +1,10 @@
+{
+"Token": "apat-tokenstring", // The sensitive token value
+"Id": 123,
+"IsRevoked": false,
+"UserId": 456,
+"ExpirationDate": "2025-12-31T:00:00:00Z",
+"Name": "My API Token",
+"Description": "Token for automated script",
+"CreateDate": "2025-05-13T13:32:52.74Z"
+}

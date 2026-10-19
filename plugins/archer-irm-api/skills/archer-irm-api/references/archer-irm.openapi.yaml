@@ -1,0 +1,2554 @@
+openapi: 3.1.0
+info:
+  title: Archer IRM Platform APIs
+  version: "2026.08"
+  summary: RESTful API, Content API (OData), V2 APIs, Data Gateway API and NGRX entry points of the Archer Integrated Risk Management platform.
+  description: |
+    Reconstructed from the official Archer API Help, release 2026.08
+    (https://help.archerirm.cloud/api_202608/content/api/archer_apis.htm), crawled 2026-10-19.
+    Archer publishes no machine-readable spec for these APIs, so this document is derived from the
+    prose documentation and its example payloads. Response schemas are therefore *representative*
+    (built from documented examples), not exhaustive. Treat unknown properties as allowed.
+
+    ## API families covered
+    | Family | Base path | Auth | Format |
+    |---|---|---|---|
+    | RESTful API ("Platform API") | `/platformapi/core/...` (alias `/api/core/...`) | `Authorization: Archer session-id=<token>` | JSON (XML via Accept) |
+    | V2 API (OData-style) | `/api/V2/...` | same header; PATs accepted | JSON |
+    | Data Gateway API | `/platformapi/DataGateway/...` | same header | JSON |
+    | Content API | `/contentapi/...` | same header, or cookie `ArcherSessionCookie` | OData v4 JSON |
+    | Next Generation Risk Experience (NGRX, SaaS only) | `/ngrx/record/v1/...` | cookie `__ArcherSessionCookie__` or JWT cookie | JSON |
+
+    The Web Services API (SOAP, `/ws/*.asmx`) is **not** expressible in OpenAPI; see the companion
+    `web-services-method-catalog.md` reference in the skill.
+
+    ## Path prefixes
+    The documentation uses `/platformapi/core/...` and `/api/core/...` interchangeably for the same
+    controllers (both are served by the same application). This spec standardises on
+    `/platformapi/core/...`. Where a page documented the other form, the operation carries
+    `x-archer-documented-path`. If an endpoint returns 404 under one prefix, retry with the other.
+    On SaaS tenants the `{instance}` path segment (usually `Archer` on-prem) may be absent, so
+    set the `instance` server variable accordingly (empty is not allowed by OpenAPI; use the
+    documented value for your tenant).
+
+    ## Reads via POST + X-Http-Method-Override
+    Most read operations are documented as `POST` with the header `X-Http-Method-Override: GET`
+    (so that OData options can travel in the request body as `{"Value":"?$select=...&$top=..."}`
+    instead of a logged query string). Plain `GET` with a query string also works for these
+    resources. Operations that are documented *only* with the override pattern are modelled as
+    `POST` with the required header; operations documented as `GET` are modelled as `GET`.
+    Every `GET` in this spec may also be issued as `POST` + override.
+
+    ## Envelope
+    Platform API responses wrap the payload in `ApiResponse`
+    (`Links`, `RequestedObject`, `IsSuccessful`, `ValidationMessages`). Collections are arrays of
+    envelopes. Validation failures still return HTTP 200 with `IsSuccessful:false`, so always
+    inspect `IsSuccessful` and `ValidationMessages`. V2 APIs instead return bare objects and
+    OData-style `CustomErrorResponse` errors with real 4xx codes.
+
+    ## Field content
+    Record field values are keyed by field ID and typed by the `Type` integer. See
+    `FieldContent` and the `FieldType` enum for the per-type value shapes.
+  contact:
+    name: Archer Community (official support)
+    url: https://community.archerirm.com/
+  license:
+    name: Derived documentation; Archer Technologies LLC owns the underlying API documentation.
+    url: https://www.archerirm.com/company/terms-of-use
+externalDocs:
+  description: Archer API Help 2026.08
+  url: https://help.archerirm.cloud/api_202608/content/api/archer_apis.htm
+
+servers:
+  - url: https://{host}/{instance}
+    description: On-premises or hosted Archer instance (instance segment is usually "Archer").
+    variables:
+      host:
+        default: archer.example.com
+        description: Archer web server host name.
+      instance:
+        default: Archer
+        description: IIS application name / virtual directory of the Archer web application.
+
+security:
+  - ArcherSession: []
+
+tags:
+  - name: Authentication
+    description: Login / logout (Security controller). Also obtains the session used by the Content API and NGRX.
+  - name: Personal Access Tokens
+    description: V2 API for creating, rotating and revoking Personal Access Tokens (PATs).
+  - name: Content
+    description: Record CRUD, history log, reference lookups (Content controller).
+  - name: Attachments
+    description: Upload and download files from the Archer file repository.
+  - name: Deleted Content
+    description: V2 audit log of deleted records.
+  - name: Workflow
+    description: Advanced Workflow actions on a record.
+  - name: Data Feed
+    description: Execute data feeds and read run history.
+  - name: Data Gateway
+    description: Manage external data connections, field maps and content maps.
+  - name: Metadata - Application
+  - name: Metadata - Event
+  - name: Metadata - Field
+  - name: Metadata - Level
+  - name: Metadata - Questionnaire
+  - name: Metadata - Security Parameter
+  - name: Metadata - Subform
+  - name: Metadata - Values List
+  - name: Metadata - Selected User Group
+  - name: Users
+  - name: Groups
+  - name: Roles
+  - name: Tasks
+  - name: Packages
+    description: Package automation (create, generate, upload, download, install).
+  - name: Access Control Reports
+    description: Security Events report and Administration Activity Logs report.
+  - name: Smart Data Publications
+  - name: Content API
+    description: OData v4 translation layer over levels and cross-references (`/contentapi`).
+  - name: NGRX
+    description: Next Generation Risk Experience API (SaaS only). Full Swagger is served by the tenant at `/ngrx/record/swagger/index.html` (non-production only).
+
+paths:
+  # ---------------------------------------------------------------- Authentication
+  /platformapi/core/security/login:
+    post:
+      tags: [Authentication]
+      operationId: login
+      summary: Login (create session)
+      description: |
+        Creates an Archer session and returns a `SessionToken`. Put it in every later request as
+        `Authorization: Archer session-id=<SessionToken>`. If SSO is enabled, "Allow manual bypass"
+        must be on in the Archer Control Panel for this call to work (the SOAP
+        `general.CreateUserSessionFromInstance` works regardless and its token is accepted here).
+        Session lifetime follows the user's security parameter (session timeout).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+            example: { InstanceName: "Archer", Username: "apiuser", UserDomain: "", Password: "********" }
+      responses:
+        "200":
+          description: Session created. Also returned (wrapped) as `RequestedObject.SessionToken` on newer builds.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/SessionContext'
+                  - allOf:
+                      - $ref: '#/components/schemas/ApiResponse'
+                      - properties:
+                          RequestedObject: { $ref: '#/components/schemas/SessionContext' }
+              example: { SessionToken: "C204E18D0ED58E288533F39C455A36E8" }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+  /platformapi/core/security/logout:
+    post:
+      tags: [Authentication]
+      operationId: logout
+      summary: Logout (terminate session)
+      description: Terminates the session named in the body. Returns true even if the session is already invalid. Terminating another user's session requires permission.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                Value: { type: string, description: Session token to terminate. }
+              required: [Value]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiResponse' }
+
+  # ---------------------------------------------------------------- Personal Access Tokens (V2)
+  /api/V2/PersonalAccessToken/Create:
+    post:
+      tags: [Personal Access Tokens]
+      operationId: createPersonalAccessToken
+      summary: Create PAT
+      description: "Administrators can create tokens for any user; others only for themselves. The `Token` value is returned once only. A PAT is used exactly like a session token (`Authorization: Archer session-id=<PAT>`)."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                request: { $ref: '#/components/schemas/PatCreateRequest' }
+              required: [request]
+            example: { request: { UserId: 123, Name: "My API Token", Description: "Token for automated script", ExpirationDate: "2027-01-31" } }
+      responses:
+        "200":
+          description: Token created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PersonalAccessToken' }
+        "400": { $ref: '#/components/responses/V2Error' }
+  /api/V2/PersonalAccessToken:
+    get:
+      tags: [Personal Access Tokens]
+      operationId: listPersonalAccessTokens
+      summary: Get PATs for a user
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Active tokens (token values are never returned).
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PersonalAccessToken' }
+  /api/V2/PersonalAccessToken({patId}):
+    delete:
+      tags: [Personal Access Tokens]
+      operationId: revokePersonalAccessToken
+      summary: Revoke PAT
+      parameters: [ { $ref: '#/components/parameters/patId' } ]
+      responses:
+        "200": { description: Revoked. }
+        "400": { $ref: '#/components/responses/V2Error' }
+  /api/V2/PersonalAccessToken({patId})/Rotate:
+    post:
+      tags: [Personal Access Tokens]
+      operationId: rotatePersonalAccessToken
+      summary: Rotate PAT by id
+      description: Revokes the token and issues a new one for the same user. Body may be empty or carry a new `ExpirationDate`.
+      parameters: [ { $ref: '#/components/parameters/patId' } ]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PatRotateRequest' }
+      responses:
+        "200":
+          description: New token.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PersonalAccessToken' }
+  /api/V2/PersonalAccessToken/SelfRotate:
+    post:
+      tags: [Personal Access Tokens]
+      operationId: selfRotatePersonalAccessToken
+      summary: Rotate the PAT used for this request
+      description: "Authenticate with the PAT to rotate (`Authorization: Archer session-id=<PAT>`); the old token is revoked and a new one returned."
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PatRotateRequest' }
+      responses:
+        "200":
+          description: New token.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PersonalAccessToken' }
+
+  # ---------------------------------------------------------------- Content
+  /platformapi/core/content/contentid:
+    get:
+      tags: [Content]
+      operationId: getContentById
+      summary: Get content by ID
+      description: "Returns one record (`Content`) with all field contents. Supports `$select` (e.g. `$select=LastUpdated`). Documented as POST + `X-Http-Method-Override: GET`."
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema: { type: integer }
+          description: Content (record) ID.
+        - $ref: '#/components/parameters/odataSelect'
+        - $ref: '#/components/parameters/methodOverride'
+      responses:
+        "200":
+          description: Record.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - properties:
+                      RequestedObject: { $ref: '#/components/schemas/Content' }
+  /platformapi/core/content/referencefield/referencefieldid:
+    get:
+      tags: [Content]
+      operationId: getContentByReferenceField
+      summary: Get content by reference field ID
+      description: |
+        For a target-questionnaire cross-reference returns all content in the target application;
+        for a regular cross-reference or related-records field returns the record-lookup content.
+        Supports `$filter`, `$select`, `$top`, `$skip`, `$orderby` (e.g. `$filter=SequentialId eq 3`).
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema: { type: integer }
+          description: Reference field ID.
+        - $ref: '#/components/parameters/odataFilter'
+        - $ref: '#/components/parameters/odataSelect'
+        - $ref: '#/components/parameters/odataTop'
+        - $ref: '#/components/parameters/odataSkip'
+        - $ref: '#/components/parameters/odataOrderby'
+        - $ref: '#/components/parameters/methodOverride'
+      responses:
+        "200": { $ref: '#/components/responses/ContentList' }
+  /platformapi/core/content/fieldcontent:
+    post:
+      tags: [Content]
+      operationId: getFieldContent
+      summary: Get content by content IDs and field IDs
+      description: "Returns only the requested fields for the requested records. Must be POST with `X-Http-Method-Override: GET` because the selection travels in the body. OData options go in the query string."
+      parameters:
+        - $ref: '#/components/parameters/methodOverrideRequired'
+        - $ref: '#/components/parameters/odataFilter'
+        - $ref: '#/components/parameters/odataSelect'
+        - $ref: '#/components/parameters/odataTop'
+        - $ref: '#/components/parameters/odataSkip'
+        - $ref: '#/components/parameters/odataOrderby'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                FieldIds: { type: array, items: { type: integer } }
+                ContentIds: { type: array, items: { type: integer } }
+              required: [FieldIds, ContentIds]
+            example: { FieldIds: [18503, 18504, 18505], ContentIds: [184630, 184631] }
+      responses:
+        "200": { $ref: '#/components/responses/ContentList' }
+  /platformapi/core/content/history/{contentId}:
+    get:
+      tags: [Content]
+      operationId: getContentHistoryLog
+      summary: Expose history log data
+      description: Returns the content of every History Log field on the record's application. Empty when no history log field has content.
+      x-archer-documented-path: /api/core/content/history/{contentId}
+      parameters:
+        - $ref: '#/components/parameters/contentIdPath'
+        - $ref: '#/components/parameters/methodOverride'
+      responses:
+        "200":
+          description: History log entries (shape varies by field configuration).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiResponse' }
+  /platformapi/core/content:
+    post:
+      tags: [Content]
+      operationId: createContent
+      summary: Post content (create record)
+      description: |
+        Creates a record. `Content.LevelId` identifies the target level; `FieldContents` is keyed by
+        field ID. Supply `SubformFieldId` only when saving sub-form content. Using POST on an existing
+        record returns 403. Invalid field inputs (bad IP address, nonexistent ContentId in a
+        cross-reference) are silently ignored while `IsSuccessful` stays true, so verify after saving.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ContentWrapper' }
+            examples:
+              minimal:
+                value:
+                  Content:
+                    LevelId: 9
+                    FieldContents:
+                      "13867": { Type: 1, Tag: "Name (Text)", Value: "Record created via REST API", FieldId: 13867 }
+                      "13890": { Type: 2, Value: 123.456, FieldId: 13890 }
+                      "13870": { Type: 4, Value: { ValuesListIds: [63738], OtherText: null }, FieldId: 13870 }
+                      "13907": { Type: 9, Value: [ { ContentId: 205522 } ], FieldId: 13907 }
+      responses:
+        "200": { $ref: '#/components/responses/IdResponse' }
+        "403": { description: Attempted to update an existing record with POST. }
+    put:
+      tags: [Content]
+      operationId: updateContent
+      summary: Put content (update record)
+      description: Updates an existing record identified by `Content.Id`. Only the supplied fields change. Works even when a user has the record locked in the UI. PUT on a nonexistent record returns 403.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ContentWrapper' }
+            example:
+              Content:
+                Id: 123
+                LevelId: 9
+                FieldContents:
+                  "3204": { Type: 2, Value: 0.0, FieldId: 3204 }
+                  "3202": { Type: 4, Value: { ValuesListIds: [2405], OtherText: null }, FieldId: 3202 }
+                  "10066": { Type: 23, Value: [150622], FieldId: 10066 }
+      responses:
+        "200": { $ref: '#/components/responses/IdResponse' }
+        "403": { description: Attempted to insert a new record with PUT. }
+  /platformapi/core/content/{contentId}:
+    delete:
+      tags: [Content]
+      operationId: deleteContent
+      summary: Delete content by ID
+      x-archer-documented-path: /api/core/content/{contentId}
+      parameters: [ { $ref: '#/components/parameters/contentIdPath' } ]
+      responses:
+        "200":
+          description: Deleted (RequestedObject is the content ID) or not found (`IsSuccessful:false`, message `ContentSaveNoContentsFound`).
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - properties:
+                      RequestedObject: { type: [integer, "null"] }
+  /platformapi/core/content/externalContentChangeNotification:
+    put:
+      tags: [Content, Data Gateway]
+      operationId: notifyExternalContentChange
+      summary: Data Gateway change notification
+      description: "Lets an external data store tell Archer that mapped external fields changed for the given content IDs; Archer then re-saves the content. Documented with header `X-Http-Method-Override: GET` present."
+      parameters: [ { $ref: '#/components/parameters/methodOverride' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                Alias: { type: string, description: Connection location alias (e.g. ARCHER). }
+                ContentPartIds: { type: array, items: { type: string }, description: Archer content IDs. }
+                ExternalFieldIds: { type: array, items: { type: string }, description: External field IDs. }
+            example: { Alias: "ARCHER", ContentPartIds: ["234811"], ExternalFieldIds: ["19649"] }
+      responses:
+        "200":
+          description: Validation message reporting success or failure.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiResponse' }
+
+  # ---------------------------------------------------------------- Attachments
+  /platformapi/core/content/attachment/{attachmentId}:
+    get:
+      tags: [Attachments]
+      operationId: getAttachment
+      summary: Get attachment
+      description: Returns an `AttachmentWrapper` with the file name and Base64 bytes; encrypted and unencrypted files are resolved automatically.
+      parameters:
+        - name: attachmentId
+          in: path
+          required: true
+          schema: { type: integer }
+        - $ref: '#/components/parameters/methodOverride'
+      responses:
+        "200":
+          description: Attachment.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - properties:
+                      RequestedObject: { $ref: '#/components/schemas/AttachmentWrapper' }
+  /platformapi/core/content/attachment:
+    post:
+      tags: [Attachments]
+      operationId: postAttachmentBytes
+      summary: Post attachment from bytes
+      description: Uploads a file as Base64. Returns the new attachment ID, which is then referenced from an Attachment (Type 11) or Image (Type 12) field value. `IsSensitive:true` stores the file encrypted; omitted means unencrypted.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AttachmentWrapper' }
+      responses:
+        "200": { $ref: '#/components/responses/IdResponse' }
+  /platformapi/core/content/multipartattachment:
+    post:
+      tags: [Attachments]
+      operationId: postAttachmentMultipart
+      summary: Post attachment from multipart form data
+      description: Form parts `AttachmentName`, `AttachmentBytes` (file part; documented as Base64 content) and optional `IsSensitive`.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                AttachmentName: { type: string }
+                AttachmentBytes: { type: string, format: binary }
+                IsSensitive: { type: boolean }
+              required: [AttachmentName, AttachmentBytes]
+      responses:
+        "200": { $ref: '#/components/responses/IdResponse' }
+
+  # ---------------------------------------------------------------- Deleted content (V2)
+  /api/V2/DeletedContent:
+    get:
+      tags: [Deleted Content]
+      operationId: listDeletedContent
+      summary: Retrieve a log of deleted content
+      description: Requires the System Administrator or Deleted Record Auditor role. All parameters optional; `take` defaults to 10000.
+      parameters:
+        - { name: startDate, in: query, schema: { type: string, format: date }, description: "Deleted on/after (yyyy-mm-dd)." }
+        - { name: endDate, in: query, schema: { type: string, format: date }, description: "Deleted on/before (yyyy-mm-dd); defaults to today." }
+        - { name: moduleid, in: query, schema: { type: integer } }
+        - { name: levelid, in: query, schema: { type: integer } }
+        - { name: skip, in: query, schema: { type: integer, default: 0 } }
+        - { name: take, in: query, schema: { type: integer, default: 10000 } }
+      responses:
+        "200":
+          description: Deleted records.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeletedContentResponse' }
+        "400": { $ref: '#/components/responses/V2Error' }
+
+  # ---------------------------------------------------------------- Workflow
+  /platformapi/core/system/WorkflowAction/{contentId}:
+    get:
+      tags: [Workflow]
+      operationId: getWorkflowActions
+      summary: Get workflow actions
+      description: Returns the current workflow node and the transitions (actions) the calling user may perform on the record, each with a `CompletionCode` to feed into Perform Workflow Actions.
+      x-archer-documented-path: /api/core/system/WorkflowAction/{contentId}
+      parameters:
+        - $ref: '#/components/parameters/contentIdPath'
+        - $ref: '#/components/parameters/methodOverride'
+      responses:
+        "200":
+          description: Available actions.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - properties:
+                      RequestedObject: { $ref: '#/components/schemas/WorkflowActions' }
+  /platformapi/core/system/WorkflowAction:
+    post:
+      tags: [Workflow]
+      operationId: performWorkflowAction
+      summary: Perform workflow action
+      description: Commits a transition. Executes regardless of layout rules. Returns `null` with HTTP 200 on success; failures raise an exception / non-200.
+      x-archer-documented-path: /api/core/system/WorkflowAction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ContentId: { type: integer }
+                CompletionCode: { type: integer }
+                WorkflowNodeId: { type: string, example: "17604:CUST" }
+              required: [ContentId, CompletionCode, WorkflowNodeId]
+      responses:
+        "200":
+          description: Success (body is `null`).
+          content:
+            application/json:
+              schema: { type: "null" }
+
+  # ---------------------------------------------------------------- Data Feed
+  /platformapi/core/datafeed/execution:
+    post:
+      tags: [Data Feed]
+      operationId: executeDataFeed
+      summary: Execute data feed
+      description: Runs the feed identified by GUID. `IsReferenceFeedsIncluded:true` also runs referenced feeds. The user needs rights to run data feeds.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                DataFeedGuid: { type: string, format: uuid }
+                IsReferenceFeedsIncluded: { type: boolean, default: false }
+              required: [DataFeedGuid]
+      responses:
+        "200":
+          description: Accepted.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiResponse' }
+  /platformapi/core/datafeed/historymessage/{historyId}:
+    get:
+      tags: [Data Feed]
+      operationId: getDataFeedHistoryMessage
+      summary: Get history message for a history ID
+      parameters:
+        - { name: historyId, in: path, required: true, schema: { type: integer } }
+        - $ref: '#/components/parameters/methodOverride'
+      responses:
+        "200":
+          description: Message.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiResponse' }
+  /platformapi/core/datafeed/history/recent:
+    post:
+      tags: [Data Feed]
+      operationId: getDataFeedRecentRun
+      summary: Get recent run detail for a data feed
+      description: Most recent run (execution time, created/updated/deleted counts, status). Status codes 1 Running, 2 Completed, 3 Faulted, 4 Warning, 5 Terminating, 6 Terminated, 7 Pending.
+      parameters: [ { $ref: '#/components/parameters/methodOverrideRequired' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GuidBody' }
+      responses:
+        "200":
+          description: Run detail.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - properties:
+                      RequestedObject: { $ref: '#/components/schemas/DataFeedRun' }
+  /platformapi/core/datafeed/history:
+    post:
+      tags: [Data Feed]
+      operationId: getDataFeedRunHistory
+      summary: Get run history for a data feed
+      parameters: [ { $ref: '#/components/parameters/methodOverrideRequired' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GuidBody' }
+      responses:
+        "200":
+          description: Run history.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref: '#/components/schemas/ApiResponse'
+                    - properties:
+                        RequestedObject: { $ref: '#/components/schemas/DataFeedRun' }
+
+  # ---------------------------------------------------------------- Data Gateway
+  /platformapi/DataGateway/Connections:
+    get:
+      tags: [Data Gateway]
+      operationId: listDataGatewayConnections
+      summary: Get connections
+      description: Lists connections; filter with `$filter=targetId eq <levelId>`. Requires Data Gateway enabled in the Control Panel and role rights to data gateway.
+      parameters: [ { $ref: '#/components/parameters/odataFilter' } ]
+      responses:
+        "200":
+          description: Connections.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - properties:
+                      RequestedObject:
+                        type: array
+                        items: { $ref: '#/components/schemas/DataGatewayConnectionInfo' }
+    post:
+      tags: [Data Gateway]
+      operationId: addDataGatewayConnection
+      summary: Add connection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DataGatewayConnectionRequest' }
+      responses:
+        "200":
+          description: New connection ID in `RequestedObject`.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - properties: { RequestedObject: { type: integer } }
+    put:
+      tags: [Data Gateway]
+      operationId: editDataGatewayConnection
+      summary: Edit connection
+      description: Same body as Add plus `Connection.Id`; `LocationAlias` and `TargetId` are ignored on edit.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DataGatewayConnectionRequest' }
+      responses:
+        "200":
+          description: Updated.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ApiResponse' }
+    delete:
+      tags: [Data Gateway]
+      operationId: deleteDataGatewayConnection
+      summary: Delete connection (async)
+      description: Removes the connection and resets its field maps and content maps; affected Archer fields become blank. Returns a job ID for the asynchronous job.
+      parameters: [ { $ref: '#/components/parameters/connectionAlias' } ]
+      responses:
+        "200": { $ref: '#/components/responses/JobResponse' }
+  /platformapi/DataGateway/Connections/Test:
+    post:
+      tags: [Data Gateway]
+      operationId: testDataGatewayConnection
+      summary: Test connection
+      description: Tests connector settings (the Flexible SQL Connector supports this; custom connectors must implement it). `RequestedObject` is true/false.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DataGatewayConnector' }
+      responses:
+        "200":
+          description: Result.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - properties: { RequestedObject: { type: boolean } }
+  /platformapi/DataGateway/FieldMaps:
+    get:
+      tags: [Data Gateway]
+      operationId: listDataGatewayFieldMaps
+      summary: Get field maps
+      description: |
+        Filter examples (URL-encode spaces/quotes):
+        `$filter=DataGatewayFieldMaps/any(dgfm:dgfm/Connections/any(conn:conn/Name eq 'SQLCON1'))`,
+        `$filter=DataGatewayFieldMaps/any(dgfm:dgfm/targetId eq 335)`.
+      parameters: [ { $ref: '#/components/parameters/odataFilter' } ]
+      responses:
+        "200":
+          description: Field maps grouped by module and level.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - properties:
+                      RequestedObject:
+                        type: array
+                        items: { $ref: '#/components/schemas/DataGatewayModuleFieldMaps' }
+    put:
+      tags: [Data Gateway]
+      operationId: putDataGatewayFieldMaps
+      summary: Add/edit field maps (or revert)
+      description: PUT and POST behave the same here. Supplying `SourceFieldId` maps an external column to an Archer field; omitting it (connection name `ARCHER`) reverts the field to native Archer storage.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DataGatewayFieldMapRequest' }
+      responses:
+        "200": { $ref: '#/components/responses/ProcessedIdsResponse' }
+    post:
+      tags: [Data Gateway]
+      operationId: postDataGatewayFieldMaps
+      summary: Add/edit field maps (or revert), POST form
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DataGatewayFieldMapRequest' }
+      responses:
+        "200": { $ref: '#/components/responses/ProcessedIdsResponse' }
+  /platformapi/DataGateway/ContentMaps:
+    get:
+      tags: [Data Gateway]
+      operationId: listDataGatewayContentMaps
+      summary: Get content maps
+      description: Returns the first 100 content maps for the connection by default; `$top` max 1000, `$skip` default 0.
+      parameters:
+        - $ref: '#/components/parameters/connectionAlias'
+        - $ref: '#/components/parameters/odataTop'
+        - $ref: '#/components/parameters/odataSkip'
+      responses:
+        "200":
+          description: Content maps.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - properties:
+                      RequestedObject: { $ref: '#/components/schemas/DataGatewayContentMaps' }
+    put:
+      tags: [Data Gateway]
+      operationId: putDataGatewayContentMaps
+      summary: Add/edit content maps
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DataGatewayContentMaps' }
+      responses:
+        "200": { $ref: '#/components/responses/ProcessedIdsResponse' }
+    post:
+      tags: [Data Gateway]
+      operationId: postDataGatewayContentMaps
+      summary: Add/edit content maps, POST form
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DataGatewayContentMaps' }
+      responses:
+        "200": { $ref: '#/components/responses/ProcessedIdsResponse' }
+  /platformapi/DataGateway/ContentMaps/Delete:
+    delete:
+      tags: [Data Gateway]
+      operationId: deleteDataGatewayContentMapsByContent
+      summary: Delete content maps by connection and content ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                LocationAlias: { type: string, maxLength: 10 }
+                ContentMaps:
+                  type: array
+                  items:
+                    type: object
+                    properties: { TrackingId: { type: integer } }
+      responses:
+        "200": { $ref: '#/components/responses/ProcessedIdsResponse' }
+  /platformapi/DataGateway/ContentMaps/DeleteAll:
+    delete:
+      tags: [Data Gateway]
+      operationId: deleteDataGatewayContentMapsByConnection
+      summary: Delete all content maps for a connection (async)
+      parameters: [ { $ref: '#/components/parameters/connectionAlias' } ]
+      responses:
+        "200": { $ref: '#/components/responses/JobResponse' }
+
+  # ---------------------------------------------------------------- Metadata: application
+  /platformapi/core/system/application:
+    get:
+      tags: [Metadata - Application]
+      operationId: listApplications
+      summary: Get all applications
+      description: Projection via `$select=Name,Description` (query string, or `{"Value":"?$select=..."}` body with POST+override).
+      parameters: [ { $ref: '#/components/parameters/odataSelect' }, { $ref: '#/components/parameters/odataOrderby' }, { $ref: '#/components/parameters/odataTop' }, { $ref: '#/components/parameters/odataSkip' }, { $ref: '#/components/parameters/methodOverride' } ]
+      responses:
+        "200": { $ref: '#/components/responses/ApplicationList' }
+  /platformapi/core/system/application/{applicationId}:
+    get:
+      tags: [Metadata - Application]
+      operationId: getApplication
+      summary: Get application by ID
+      parameters: [ { $ref: '#/components/parameters/applicationId' }, { $ref: '#/components/parameters/methodOverride' } ]
+      responses:
+        "200": { $ref: '#/components/responses/ApplicationSingle' }
+  /platformapi/core/system/applicationinfo/version:
+    get:
+      tags: [Metadata - Application]
+      operationId: getPlatformVersion
+      summary: Get application (platform) version
+      parameters: [ { $ref: '#/components/parameters/methodOverride' } ]
+      responses:
+        "200":
+          description: Version string in `RequestedObject`.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - properties: { RequestedObject: { type: object } }
+
+  # ---------------------------------------------------------------- Metadata: events
+  /platformapi/core/system/eventaction/{eventActionId}:
+    get:
+      tags: [Metadata - Event]
+      operationId: getEventAction
+      summary: Get data-driven event action by ID
+      parameters: [ { name: eventActionId, in: path, required: true, schema: { type: integer } }, { $ref: '#/components/parameters/methodOverride' } ]
+      responses: { "200": { $ref: '#/components/responses/GenericObject' } }
+  /platformapi/core/system/eventaction/eventrule/{eventRuleId}:
+    get:
+      tags: [Metadata - Event]
+      operationId: getEventActionsByRule
+      summary: Get event actions by event rule ID
+      parameters: [ { name: eventRuleId, in: path, required: true, schema: { type: integer } }, { $ref: '#/components/parameters/methodOverride' } ]
+      responses: { "200": { $ref: '#/components/responses/GenericList' } }
+  /platformapi/core/system/eventrule/{eventRuleId}:
+    get:
+      tags: [Metadata - Event]
+      operationId: getEventRule
+      summary: Get event rule by ID
+      parameters: [ { name: eventRuleId, in: path, required: true, schema: { type: integer } }, { $ref: '#/components/parameters/methodOverride' } ]
+      responses: { "200": { $ref: '#/components/responses/GenericObject' } }
+  /platformapi/core/system/eventrule/level/{levelId}:
+    get:
+      tags: [Metadata - Event]
+      operationId: getEventRulesByLevel
+      summary: Get event rules by level ID
+      parameters: [ { $ref: '#/components/parameters/levelId' }, { $ref: '#/components/parameters/methodOverride' } ]
+      responses: { "200": { $ref: '#/components/responses/GenericList' } }
+
+  # ---------------------------------------------------------------- Metadata: fields
+  /platformapi/core/system/fielddefinition/application/{applicationId}:
+    get:
+      tags: [Metadata - Field]
+      operationId: getFieldDefinitionsByApplication
+      summary: Get field definitions by application ID
+      parameters: [ { $ref: '#/components/parameters/applicationId' }, { $ref: '#/components/parameters/odataFilter' }, { $ref: '#/components/parameters/odataSelect' }, { $ref: '#/components/parameters/odataOrderby' } ]
+      responses: { "200": { $ref: '#/components/responses/FieldDefinitionList' } }
+  /platformapi/core/system/fielddefinition/{fieldId}:
+    get:
+      tags: [Metadata - Field]
+      operationId: getFieldDefinition
+      summary: Get field definition by field ID
+      description: Returned as the base `FieldDefinition` type; only base properties (Id, LevelId, Type, Name, Alias, IsActive, Guid, ASOStatus, SystemType, IsPrivate, IsContentReadOnly, EsFieldMappingId, UpdateInformation, FieldMap) are usable in OData options.
+      parameters: [ { $ref: '#/components/parameters/fieldId' }, { $ref: '#/components/parameters/methodOverride' } ]
+      responses: { "200": { $ref: '#/components/responses/FieldDefinitionSingle' } }
+  /platformapi/core/system/fielddefinition/level/{levelId}:
+    get:
+      tags: [Metadata - Field]
+      operationId: getFieldDefinitionsByLevel
+      summary: Get field definitions by level ID
+      parameters: [ { $ref: '#/components/parameters/levelId' }, { $ref: '#/components/parameters/odataFilter' }, { $ref: '#/components/parameters/odataSelect' }, { $ref: '#/components/parameters/odataOrderby' }, { $ref: '#/components/parameters/methodOverride' } ]
+      responses: { "200": { $ref: '#/components/responses/FieldDefinitionList' } }
+  /platformapi/core/system/fielddefinition/level/{levelId}/valueslist:
+    get:
+      tags: [Metadata - Field]
+      operationId: getValuesListFieldDefinitionsByLevel
+      summary: Get values-list field definitions by level ID
+      description: Same as by level but typed as `ValuesListFieldDefinition`, so values-list-specific properties (e.g. `RelatedValuesListId`) can be filtered/selected.
+      parameters: [ { $ref: '#/components/parameters/levelId' }, { $ref: '#/components/parameters/odataFilter' }, { $ref: '#/components/parameters/odataSelect' }, { $ref: '#/components/parameters/methodOverride' } ]
+      responses: { "200": { $ref: '#/components/responses/FieldDefinitionList' } }
+  /platformapi/core/system/fielddisplay/level/{levelId}:
+    get:
+      tags: [Metadata - Field]
+      operationId: getFieldDisplaysByLevel
+      summary: Get field displays by level ID
+      parameters: [ { $ref: '#/components/parameters/levelId' }, { $ref: '#/components/parameters/methodOverride' } ]
+      responses: { "200": { $ref: '#/components/responses/GenericList' } }
+  /platformapi/core/system/field/eventrulefilter/level/{levelId}:
+    get:
+      tags: [Metadata - Field]
+      operationId: getFieldIdsReferencedByEventRuleFilters
+      summary: Get field IDs referenced by event-rule filters on a level
+      parameters: [ { $ref: '#/components/parameters/levelId' } ]
+      responses: { "200": { $ref: '#/components/responses/FieldDefinitionList' } }
+
+  # ---------------------------------------------------------------- Metadata: levels
+  /platformapi/core/system/level:
+    get:
+      tags: [Metadata - Level]
+      operationId: listLevels
+      summary: Get all levels
+      parameters: [ { $ref: '#/components/parameters/odataSelect' }, { $ref: '#/components/parameters/odataFilter' }, { $ref: '#/components/parameters/methodOverride' } ]
+      responses: { "200": { $ref: '#/components/responses/LevelList' } }
+  /platformapi/core/system/level/{levelId}:
+    get:
+      tags: [Metadata - Level]
+      operationId: getLevel
+      summary: Get level by level ID
+      parameters: [ { $ref: '#/components/parameters/levelId' }, { $ref: '#/components/parameters/methodOverride' } ]
+      responses: { "200": { $ref: '#/components/responses/LevelSingle' } }
+  /platformapi/core/system/level/module/{moduleId}:
+    get:
+      tags: [Metadata - Level]
+      operationId: getLevelsByModule
+      summary: Get levels by module (application/questionnaire) ID
+      parameters: [ { name: moduleId, in: path, required: true, schema: { type: integer } }, { $ref: '#/components/parameters/methodOverride' } ]
+      responses: { "200": { $ref: '#/components/responses/LevelList' } }
+  /platformapi/core/system/level/referencefield/{fieldId}:
+    get:
+      tags: [Metadata - Level]
+      operationId: getLevelsByReferenceField
+      summary: Get levels targeted by a reference field
+      parameters: [ { $ref: '#/components/parameters/fieldId' }, { $ref: '#/components/parameters/methodOverride' } ]
+      responses: { "200": { $ref: '#/components/responses/LevelList' } }
+  /platformapi/core/system/levellayout/level/{levelId}:
+    get:
+      tags: [Metadata - Level]
+      operationId: getLevelLayout
+      summary: Get level layout by level ID
+      parameters: [ { $ref: '#/components/parameters/levelId' }, { $ref: '#/components/parameters/methodOverride' } ]
+      responses: { "200": { $ref: '#/components/responses/GenericObject' } }
+
+  # ---------------------------------------------------------------- Metadata: questionnaires
+  /platformapi/core/system/questionnaire:
+    get:
+      tags: [Metadata - Questionnaire]
+      operationId: listQuestionnaires
+      summary: Get all questionnaires
+      parameters: [ { $ref: '#/components/parameters/odataSelect' }, { $ref: '#/components/parameters/methodOverride' } ]
+      responses: { "200": { $ref: '#/components/responses/GenericList' } }
+  /platformapi/core/system/questionnaire/{questionnaireId}:
+    get:
+      tags: [Metadata - Questionnaire]
+      operationId: getQuestionnaire
+      summary: Get questionnaire by ID
+      parameters: [ { name: questionnaireId, in: path, required: true, schema: { type: integer } }, { $ref: '#/components/parameters/methodOverride' } ]
+      responses: { "200": { $ref: '#/components/responses/GenericObject' } }
+  /platformapi/core/system/questionnairerule/{questionnaireRuleId}:
+    get:
+      tags: [Metadata - Questionnaire]
+      operationId: getQuestionnaireRule
+      summary: Get questionnaire rule by ID
+      parameters: [ { name: questionnaireRuleId, in: path, required: true, schema: { type: integer } }, { $ref: '#/components/parameters/methodOverride' } ]
+      responses: { "200": { $ref: '#/components/responses/GenericObject' } }
+  /platformapi/core/system/questionnairerule/level/{levelId}:
+    get:
+      tags: [Metadata - Questionnaire]
+      operationId: getQuestionnaireRulesByLevel
+      summary: Get questionnaire rules by level
+      parameters: [ { $ref: '#/components/parameters/levelId' }, { $ref: '#/components/parameters/methodOverride' } ]
+      responses: { "200": { $ref: '#/components/responses/GenericList' } }
+
+  # ---------------------------------------------------------------- Metadata: security parameters
+  /platformapi/core/system/securityparameter:
+    get:
+      tags: [Metadata - Security Parameter]
+      operationId: listSecurityParameters
+      summary: Get all security parameters
+      parameters: [ { $ref: '#/components/parameters/methodOverride' } ]
+      responses: { "200": { $ref: '#/components/responses/SecurityParameterList' } }
+    post:
+      tags: [Metadata - Security Parameter]
+      operationId: createSecurityParameter
+      summary: Create a security parameter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SecurityParameter' }
+      responses: { "200": { $ref: '#/components/responses/IdResponse' } }
+    put:
+      tags: [Metadata - Security Parameter]
+      operationId: updateSecurityParameter
+      summary: Update a security parameter
+      description: Body must include `Id`, `Alias` and `GUID` of the existing parameter.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SecurityParameter' }
+      responses: { "200": { $ref: '#/components/responses/IdResponse' } }
+  /platformapi/core/system/securityparameter/{securityParameterId}:
+    get:
+      tags: [Metadata - Security Parameter]
+      operationId: getSecurityParameter
+      summary: Get security parameter by ID
+      parameters: [ { $ref: '#/components/parameters/securityParameterId' }, { $ref: '#/components/parameters/methodOverride' } ]
+      responses: { "200": { $ref: '#/components/responses/SecurityParameterSingle' } }
+    delete:
+      tags: [Metadata - Security Parameter]
+      operationId: deleteSecurityParameter
+      summary: Delete a security parameter
+      parameters: [ { $ref: '#/components/parameters/securityParameterId' } ]
+      responses: { "200": { $ref: '#/components/responses/IdResponse' } }
+
+  # ---------------------------------------------------------------- Metadata: subform, values lists, selected user group
+  /platformapi/core/system/subform/{subformId}:
+    get:
+      tags: [Metadata - Subform]
+      operationId: getSubform
+      summary: Get subform by ID
+      parameters: [ { name: subformId, in: path, required: true, schema: { type: integer } }, { $ref: '#/components/parameters/methodOverride' } ]
+      responses: { "200": { $ref: '#/components/responses/GenericObject' } }
+  /platformapi/core/system/valueslist/{valuesListId}:
+    get:
+      tags: [Metadata - Values List]
+      operationId: getValuesListDefinition
+      summary: Get values list definition by ID
+      parameters: [ { $ref: '#/components/parameters/valuesListId' }, { $ref: '#/components/parameters/methodOverride' } ]
+      responses: { "200": { $ref: '#/components/responses/GenericObject' } }
+  /platformapi/core/system/valueslistvalue/flat/valueslist/{valuesListId}:
+    get:
+      tags: [Metadata - Values List]
+      operationId: getValuesListValuesFlat
+      summary: Get values list values (flat)
+      parameters: [ { $ref: '#/components/parameters/valuesListId' }, { $ref: '#/components/parameters/methodOverride' } ]
+      responses: { "200": { $ref: '#/components/responses/ValuesListValueList' } }
+  /platformapi/core/system/valueslistvalue/valueslist/{valuesListId}:
+    get:
+      tags: [Metadata - Values List]
+      operationId: getValuesListValuesHierarchical
+      summary: Get values list values (hierarchical tree)
+      parameters: [ { $ref: '#/components/parameters/valuesListId' }, { $ref: '#/components/parameters/methodOverride' } ]
+      responses: { "200": { $ref: '#/components/responses/ValuesListValueList' } }
+  /platformapi/core/system/usergroupselection/usergrouplist/{fieldId}:
+    get:
+      tags: [Metadata - Selected User Group]
+      operationId: getSelectedUserGroupsByField
+      summary: Get selected user/group list for a User/Groups List field
+      description: Lists the users and groups available for selection in the field. For the All Users / All Groups flags use the field definition.
+      parameters: [ { $ref: '#/components/parameters/fieldId' }, { $ref: '#/components/parameters/methodOverride' } ]
+      responses: { "200": { $ref: '#/components/responses/GenericList' } }
+
+  # ---------------------------------------------------------------- Users
+  /platformapi/core/system/user:
+    get:
+      tags: [Users]
+      operationId: listUsers
+      summary: Get all users
+      description: Documented as POST + override so that the OData options can be sent in the body; `$filter`, `$select`, `$orderby`, `$top`, `$skip` on user properties.
+      parameters: [ { $ref: '#/components/parameters/odataFilter' }, { $ref: '#/components/parameters/odataSelect' }, { $ref: '#/components/parameters/odataOrderby' }, { $ref: '#/components/parameters/odataTop' }, { $ref: '#/components/parameters/odataSkip' }, { $ref: '#/components/parameters/methodOverride' } ]
+      responses: { "200": { $ref: '#/components/responses/UserList' } }
+    post:
+      tags: [Users]
+      operationId: createUser
+      summary: Create user
+      description: Required `User.FirstName`, `User.LastName` and top-level `Password`. `AccountStatus` 1 Active, 2 Inactive, 3 Locked. Default role is General User; default user name is last name + first initial (`doej`).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UserWrapper' }
+            example:
+              User: { FirstName: "John", LastName: "Doe", UserName: "jdoe", AccountStatus: 1, SecurityId: 1, TimeZoneId: "Eastern Standard Time", Locale: "en-US", ForcePasswordChange: true }
+              Password: "********"
+              Notification: true
+              Roles: [73]
+              Groups: [141]
+              Contacts: [ { ContactType: 7, ContactSubType: 2, Value: "john.doe@example.com", IsDefault: true } ]
+      responses: { "200": { $ref: '#/components/responses/IdResponse' } }
+    put:
+      tags: [Users]
+      operationId: updateUser
+      summary: Update user
+      description: |
+        Full replacement of the profile: send every existing property value you want to keep, because
+        omitted ones reset (MiddleName, Title, Locale, LanguageId, DefaultHomeDashboardId/WorkspaceId
+        become null; TimeZoneId, ForcePasswordChange, SecurityId, DomainId revert to defaults).
+        `Contacts`, `Roles`, `Groups`: null leaves them unchanged, a list replaces them.
+        `Id`, `FirstName`, `LastName`, `UserName`, `AccountStatus` are required.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UserWrapper' }
+      responses: { "200": { $ref: '#/components/responses/IdResponse' } }
+  /platformapi/core/system/user/{userId}:
+    get:
+      tags: [Users]
+      operationId: getUser
+      summary: Get user by ID
+      parameters: [ { $ref: '#/components/parameters/userId' }, { $ref: '#/components/parameters/methodOverride' } ]
+      responses: { "200": { $ref: '#/components/responses/UserSingle' } }
+    delete:
+      tags: [Users]
+      operationId: deleteUser
+      summary: Delete user
+      parameters: [ { $ref: '#/components/parameters/userId' } ]
+      responses: { "200": { $ref: '#/components/responses/IdResponse' } }
+  /platformapi/core/system/user/group/{groupId}:
+    get:
+      tags: [Users]
+      operationId: getUsersByGroup
+      summary: Get users by group
+      parameters: [ { $ref: '#/components/parameters/groupId' }, { $ref: '#/components/parameters/methodOverride' } ]
+      responses: { "200": { $ref: '#/components/responses/UserList' } }
+  /platformapi/core/system/user/status/active/{userId}:
+    post:
+      tags: [Users]
+      operationId: activateUser
+      summary: Activate user
+      parameters: [ { $ref: '#/components/parameters/userId' } ]
+      responses: { "200": { $ref: '#/components/responses/IdResponse' } }
+  /platformapi/core/system/user/status/inactive/{userId}:
+    post:
+      tags: [Users]
+      operationId: deactivateUser
+      summary: Deactivate user
+      parameters: [ { $ref: '#/components/parameters/userId' } ]
+      responses: { "200": { $ref: '#/components/responses/IdResponse' } }
+  /platformapi/core/system/userpassword:
+    put:
+      tags: [Users]
+      operationId: changeUserPassword
+      summary: Change user password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: { UserId: { type: integer }, NewPassword: { type: string } }
+              required: [UserId, NewPassword]
+      responses: { "200": { $ref: '#/components/responses/IdResponse' } }
+  /platformapi/core/system/usergroup:
+    put:
+      tags: [Users, Groups]
+      operationId: setUserGroupMembership
+      summary: Add user to / remove user from group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: { UserId: { type: integer }, GroupId: { type: integer }, IsAdd: { type: boolean, description: true adds, false removes } }
+              required: [UserId, GroupId, IsAdd]
+      responses: { "200": { $ref: '#/components/responses/IdResponse' } }
+  /platformapi/core/system/userrole:
+    put:
+      tags: [Users, Roles]
+      operationId: setUserRoleMembership
+      summary: Add user to / remove user from access role
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: { UserId: { type: integer }, RoleId: { type: integer }, IsAdd: { type: boolean } }
+              required: [UserId, RoleId, IsAdd]
+      responses: { "200": { $ref: '#/components/responses/IdResponse' } }
+  /platformapi/core/system/usercontact:
+    get:
+      tags: [Users]
+      operationId: listUserContacts
+      summary: Get all user contacts
+      responses:
+        "200":
+          description: Contacts per user.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref: '#/components/schemas/ApiResponse'
+                    - properties:
+                        RequestedObject:
+                          type: object
+                          properties:
+                            UserId: { type: integer }
+                            Contacts: { type: array, items: { $ref: '#/components/schemas/Contact' } }
+  /platformapi/core/system/usercontact/{userId}:
+    get:
+      tags: [Users]
+      operationId: getUserContacts
+      summary: Get contact information for a user
+      parameters: [ { $ref: '#/components/parameters/userId' } ]
+      responses:
+        "200":
+          description: Contacts.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref: '#/components/schemas/ApiResponse'
+                    - properties: { RequestedObject: { $ref: '#/components/schemas/Contact' } }
+  /platformapi/core/system/task:
+    post:
+      tags: [Tasks]
+      operationId: getUserTasks
+      summary: Get tasks assigned to the current user
+      description: POST + override with an OData body; `$filter` is supported only on `IsComplete`.
+      parameters: [ { $ref: '#/components/parameters/methodOverrideRequired' } ]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ODataQueryBody' }
+            example: { Value: "?$skip=0&$top=25&$filter=IsComplete eq false" }
+      responses:
+        "200":
+          description: Tasks.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref: '#/components/schemas/ApiResponse'
+                    - properties: { RequestedObject: { $ref: '#/components/schemas/Task' } }
+
+  # ---------------------------------------------------------------- Groups
+  /platformapi/core/system/group:
+    get:
+      tags: [Groups]
+      operationId: listGroups
+      summary: Get all groups
+      parameters: [ { $ref: '#/components/parameters/odataFilter' }, { $ref: '#/components/parameters/odataSelect' }, { $ref: '#/components/parameters/methodOverride' } ]
+      responses: { "200": { $ref: '#/components/responses/GroupList' } }
+    post:
+      tags: [Groups]
+      operationId: createGroup
+      summary: Create group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GroupWrapper' }
+            example: { Group: { Name: "GroupA", Description: "Group A description" }, ParentGroups: [1], ChildGroups: [2], ChildUsers: null }
+      responses: { "200": { $ref: '#/components/responses/IdResponse' } }
+    put:
+      tags: [Groups]
+      operationId: updateGroup
+      summary: Update group
+      description: "`Group.Id` and `Group.Name` required. `ParentGroups`/`ChildGroups`/`ChildUsers`: null leaves unchanged, list replaces."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GroupWrapper' }
+      responses: { "200": { $ref: '#/components/responses/IdResponse' } }
+  /platformapi/core/system/group/{groupId}:
+    get:
+      tags: [Groups]
+      operationId: getGroup
+      summary: Get group by ID
+      parameters: [ { $ref: '#/components/parameters/groupId' } ]
+      responses: { "200": { $ref: '#/components/responses/GroupSingle' } }
+    delete:
+      tags: [Groups]
+      operationId: deleteGroup
+      summary: Delete group
+      parameters: [ { $ref: '#/components/parameters/groupId' } ]
+      responses: { "200": { $ref: '#/components/responses/IdResponse' } }
+  /platformapi/core/system/group/user/{userId}:
+    get:
+      tags: [Groups]
+      operationId: getGroupsByUser
+      summary: Get groups of which a user is a member
+      parameters: [ { $ref: '#/components/parameters/userId' }, { $ref: '#/components/parameters/methodOverride' } ]
+      responses: { "200": { $ref: '#/components/responses/GroupList' } }
+  /platformapi/core/system/grouphierarchy:
+    get:
+      tags: [Groups]
+      operationId: getGroupHierarchy
+      summary: Get group hierarchy
+      description: Each record is (Id, RelatedId = ancestor group, Generation = distance; 0 for itself, 1 for immediate parent).
+      responses:
+        "200":
+          description: Hierarchy records.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref: '#/components/schemas/ApiResponse'
+                    - properties:
+                        RequestedObject:
+                          type: object
+                          properties: { Id: { type: integer }, RelatedId: { type: integer }, Generation: { type: integer } }
+  /platformapi/core/system/groupmembership:
+    get:
+      tags: [Groups]
+      operationId: getGroupMemberships
+      summary: Get all group memberships (users and parent groups per group)
+      responses:
+        "200":
+          description: Memberships.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref: '#/components/schemas/ApiResponse'
+                    - properties:
+                        RequestedObject:
+                          type: object
+                          properties:
+                            GroupId: { type: integer }
+                            UserIds: { type: [array, "null"], items: { type: integer } }
+                            ParentGroupIds: { type: [array, "null"], items: { type: integer } }
+  /platformapi/core/system/groupmember:
+    put:
+      tags: [Groups]
+      operationId: setGroupMember
+      summary: Add child group to / remove from parent group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: { GroupId: { type: integer, description: Parent group }, GroupMemberId: { type: integer, description: Child group }, IsAdd: { type: boolean } }
+              required: [GroupId, GroupMemberId, IsAdd]
+      responses: { "200": { $ref: '#/components/responses/IdResponse' } }
+  /platformapi/core/system/rolegroup:
+    put:
+      tags: [Groups, Roles]
+      operationId: setGroupRoleMembership
+      summary: Add group to / remove group from access role
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: { GroupId: { type: integer }, RoleId: { type: integer }, IsAdd: { type: boolean } }
+              required: [GroupId, RoleId, IsAdd]
+      responses: { "200": { $ref: '#/components/responses/IdResponse' } }
+
+  # ---------------------------------------------------------------- Roles
+  /platformapi/core/system/role:
+    get:
+      tags: [Roles]
+      operationId: listRoles
+      summary: Get all access roles
+      responses: { "200": { $ref: '#/components/responses/RoleList' } }
+    post:
+      tags: [Roles]
+      operationId: createRole
+      summary: Create access role
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RoleWrapper' }
+            example: { AccessRole: { Name: "RoleA", Description: "This is a test role", IsDefault: false }, GroupIds: [1, 2], AccessRoleTasks: null }
+      responses: { "200": { $ref: '#/components/responses/IdResponse' } }
+    put:
+      tags: [Roles]
+      operationId: updateRole
+      summary: Update access role
+      description: "`AccessRole.Id`, `Name` and `Alias` required. `GroupIds` null/empty unassigns all groups. `AccessRoleTasks` null leaves permissions unchanged. Warning: the request clears the role's Default Home Page settings."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RoleWrapper' }
+      responses: { "200": { $ref: '#/components/responses/IdResponse' } }
+  /platformapi/core/system/role/{roleId}:
+    delete:
+      tags: [Roles]
+      operationId: deleteRole
+      summary: Delete access role
+      parameters: [ { name: roleId, in: path, required: true, schema: { type: integer } } ]
+      responses: { "200": { $ref: '#/components/responses/IdResponse' } }
+  /platformapi/core/system/role/user/{userId}:
+    get:
+      tags: [Roles]
+      operationId: getRolesByUser
+      summary: Get roles for a user
+      parameters: [ { $ref: '#/components/parameters/userId' } ]
+      responses: { "200": { $ref: '#/components/responses/RoleList' } }
+  /platformapi/core/system/rolemembership:
+    get:
+      tags: [Roles]
+      operationId: getRoleMemberships
+      summary: Get role memberships (users and groups per role)
+      responses: { "200": { $ref: '#/components/responses/GenericList' } }
+
+  # ---------------------------------------------------------------- Packages
+  /platformapi/core/package:
+    post:
+      tags: [Packages]
+      operationId: createPackage
+      summary: Create package
+      x-archer-documented-path: /api/core/package/
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PackageCreateRequest' }
+      responses: { "200": { $ref: '#/components/responses/IdResponse' } }
+  /platformapi/core/package/generate/{packageId}:
+    post:
+      tags: [Packages]
+      operationId: generatePackage
+      summary: Generate package file
+      x-archer-documented-path: /api/core/package/generate/{packageId}
+      parameters: [ { $ref: '#/components/parameters/packageId' } ]
+      responses: { "200": { $ref: '#/components/responses/GenericObject' } }
+  /platformapi/core/package/install:
+    post:
+      tags: [Packages]
+      operationId: installPackage
+      summary: Install package
+      description: Copy the exact body from the Import and Install Packages page in the UI, which fills in object GUIDs and install options.
+      x-archer-documented-path: /api/core/package/install
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PackageInstallRequest' }
+      responses: { "200": { $ref: '#/components/responses/GenericObject' } }
+  /platformapi/core/package/upload:
+    post:
+      tags: [Packages]
+      operationId: uploadPackage
+      summary: Upload package (.zip)
+      x-archer-documented-path: /api/core/package/upload
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file: { type: string, format: binary, description: The package zip (any part name). }
+      responses: { "200": { $ref: '#/components/responses/IdResponse' } }
+  /platformapi/core/package/download/{packageId}:
+    get:
+      tags: [Packages]
+      operationId: downloadPackage
+      summary: Download package (.zip)
+      x-archer-documented-path: /api/core/package/download/{packageId}
+      parameters: [ { $ref: '#/components/parameters/packageId' } ]
+      responses:
+        "200":
+          description: Package file.
+          content:
+            application/zip:
+              schema: { type: string, format: binary }
+
+  # ---------------------------------------------------------------- Access Control reports
+  /platformapi/core/system/AccessControlReports/SecurityEvents:
+    post:
+      tags: [Access Control Reports]
+      operationId: getSecurityEvents
+      summary: Security Events Report
+      description: Up to 50,000 events per page for one day; `EventsForDate` must be 1 to 6 days before today. Requires read rights to the Security Events report. See the skill reference for the full list of event types.
+      x-archer-documented-path: /api/core/system/AccessControlReports/SecurityEvents
+      parameters:
+        - $ref: '#/components/parameters/methodOverrideRequired'
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                InstanceName: { type: string }
+                EventType: { type: string, example: "All Events" }
+                EventsForDate: { type: string, format: date }
+              required: [InstanceName, EventType, EventsForDate]
+      responses:
+        "200":
+          description: Events.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - properties:
+                      RequestedObject:
+                        type: array
+                        items: { $ref: '#/components/schemas/SecurityEvent' }
+  /platformapi/core/system/AdministrationActivityLogsReports/AdministrationActivityLogsReport:
+    post:
+      tags: [Access Control Reports]
+      operationId: getAdministrationActivityLogs
+      summary: Field Administration Activity Logs Report
+      description: Up to 50,000 records per page. The documentation also shows the resource name `FieldAdministrationActivityLogsReport`; try it if this one returns 404.
+      x-archer-documented-path: /api/core/system/AdministrationActivityLogsReports/AdministrationActivityLogsReport/
+      parameters:
+        - $ref: '#/components/parameters/methodOverrideRequired'
+        - { name: page, in: query, schema: { type: integer, default: 1 } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                InitiatingUserId: { type: integer }
+                ActionsForDate: { type: string, format: date }
+                ApplicationId: { type: integer }
+                ActionType: { type: string, example: "Field Creation" }
+              required: [InitiatingUserId, ActionsForDate, ApplicationId, ActionType]
+      responses:
+        "200":
+          description: Log entries.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AdministrationActivityLog' }
+
+  # ---------------------------------------------------------------- Smart Data Publications
+  /platformapi/core/smartdatapublication/download/{sdpId}:
+    get:
+      tags: [Smart Data Publications]
+      operationId: downloadSmartDataPublication
+      summary: Download exported ZIP for a Smart Data Publication
+      description: "Streams the export ZIP. Response headers `Content-Disposition` (file name) and `zip-crc` (CRC for integrity check). Requires Manage Smart Data Publication rights. Send `Accept: application/octet-stream`."
+      x-archer-documented-path: /api/core/smartdatapublication/download/{sdpId}
+      parameters: [ { name: sdpId, in: path, required: true, schema: { type: integer } } ]
+      responses:
+        "200":
+          description: ZIP stream.
+          headers:
+            Content-Disposition: { schema: { type: string } }
+            zip-crc: { schema: { type: string } }
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        "400": { description: Bad request. }
+        "500": { description: Could not download exported files. }
+
+  # ---------------------------------------------------------------- Content API (OData)
+  /contentapi/:
+    get:
+      tags: [Content API]
+      operationId: contentApiGetEndpoints
+      summary: Get endpoints (entity sets)
+      description: Lists every level and cross-reference relationship the user can read, as OData entity sets. Level aliases are case-sensitive; when two levels share an alias the entity set is `ModuleAlias_LevelAlias`.
+      security:
+        - ArcherSession: []
+        - ArcherSessionCookie: []
+      responses:
+        "200":
+          description: Service document.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ODataServiceDocument' }
+  /contentapi/$metadata:
+    get:
+      tags: [Content API]
+      operationId: contentApiGetMetadata
+      summary: OData CSDL metadata ($metadata)
+      description: Standard OData v4 metadata document describing every entity set and its properties (field aliases and types).
+      responses:
+        "200":
+          description: CSDL XML.
+          content:
+            application/xml:
+              schema: { type: string }
+  /contentapi/{levelAlias}:
+    get:
+      tags: [Content API]
+      operationId: contentApiListRecords
+      summary: Get level content (records by field alias)
+      description: |
+        Returns up to 1,000 records per page as flat JSON keyed by field alias. Paging: `?skip=N`
+        (N in records; documented as "thousands" for raw paging) and `?top=N` or `?top=all`; the
+        standard OData forms `$top`, `$skip`, `$filter`, `$select`, `$orderby` are also accepted
+        (`skip=10&$top=20` is shown in the documentation). Values lists come back as arrays of
+        value text; references as arrays of IDs; users/groups as objects.
+      parameters:
+        - $ref: '#/components/parameters/levelAlias'
+        - { name: skip, in: query, schema: { type: integer }, description: Records to skip. }
+        - { name: top, in: query, schema: { type: string }, description: "Number of records, or `all`." }
+        - $ref: '#/components/parameters/odataFilter'
+        - $ref: '#/components/parameters/odataSelect'
+        - $ref: '#/components/parameters/odataOrderby'
+        - $ref: '#/components/parameters/odataTop'
+        - $ref: '#/components/parameters/odataSkip'
+      responses:
+        "200":
+          description: Records.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ODataCollection' }
+    post:
+      tags: [Content API]
+      operationId: contentApiSaveRecord
+      summary: Content Save (create or update a record)
+      description: |
+        Body is a flat object keyed by field alias. The `<LevelAlias>_Id` property set to `0` creates a
+        record; any other value updates that record. Supported field types: Text, Numeric, Date,
+        Values List (`{"ValuesListIds":[...]}`), User/Groups List and Record Permissions
+        (`{"UserList":[{"Id":n}],"GroupList":[{"Id":n}]}`), Cross-Reference / Related Records (array of
+        content IDs), Sub-Form, IP Address, First Published, Last Updated. Updating a record with values
+        identical to its current values fails with HTTP 400. Returns HTTP 200 with an empty body.
+      parameters: [ { $ref: '#/components/parameters/levelAlias' } ]
+      security:
+        - ArcherSession: []
+        - ArcherSessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+            example:
+              Exception_Requests_Id: 0
+              Risk_Rating: { ValuesListIds: [1199] }
+              Submitter: { UserList: [ { Id: 2 } ] }
+              Submission_Due_Date: "07/07/2018"
+              Exception_Description: "This is an exception description"
+              Business_Unit: [226446]
+      responses:
+        "200": { description: Saved. }
+        "400": { description: Validation failure (including no-op update with identical values). }
+  /contentapi/{levelAlias}({trackingId}):
+    get:
+      tags: [Content API]
+      operationId: contentApiGetRecord
+      summary: Get a single record by tracking ID
+      parameters:
+        - $ref: '#/components/parameters/levelAlias'
+        - { name: trackingId, in: path, required: true, schema: { type: integer }, description: Record (content) ID; must be in parentheses in the URL. }
+      responses:
+        "200":
+          description: Record.
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+  /contentapi/{levelAlias}_{fieldAlias}:
+    get:
+      tags: [Content API]
+      operationId: contentApiGetRelationships
+      summary: Get cross-reference / related-records relationships
+      description: Entity set named `<LevelAlias>_<FieldAlias>` returning pairs of `<Level>_Id` values for every linked record pair (e.g. `Incidents_Id`, `Risk_Register_Id`).
+      parameters:
+        - $ref: '#/components/parameters/levelAlias'
+        - { name: fieldAlias, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Relationship pairs.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ODataCollection' }
+
+  # ---------------------------------------------------------------- NGRX (SaaS only)
+  /ngrx/record/v1/levels/{levelId}:
+    get:
+      tags: [NGRX]
+      operationId: ngrxGetLevel
+      summary: NGRX level (documented JWT bootstrap example)
+      description: |
+        The only NGRX call shown in the public help. Send `cookie: __ArcherSessionCookie__=<session token or PAT>`;
+        the response carries a `Set-Cookie` with a JWT that should be reused on subsequent NGRX calls
+        for best performance. The full NGRX surface is documented per tenant at
+        `/ngrx/record/swagger/index.html` (non-production environments only).
+      security:
+        - NgrxSessionCookie: []
+        - NgrxJwtCookie: []
+      parameters: [ { $ref: '#/components/parameters/levelId' } ]
+      responses:
+        "200":
+          description: Level definition.
+          headers:
+            Set-Cookie: { schema: { type: string }, description: JWT cookie to reuse. }
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+
+components:
+  securitySchemes:
+    ArcherSession:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: "`Authorization: Archer session-id=<SessionToken or PAT>` (the custom `Archer` scheme, not Bearer)."
+    ArcherSessionCookie:
+      type: apiKey
+      in: cookie
+      name: ArcherSessionCookie
+      description: Alternative for the Content API; value is the session token.
+    NgrxSessionCookie:
+      type: apiKey
+      in: cookie
+      name: __ArcherSessionCookie__
+      description: Archer session token or PAT for the first NGRX call.
+    NgrxJwtCookie:
+      type: apiKey
+      in: cookie
+      name: jwt
+      description: The JWT cookie returned by the first NGRX call (actual cookie name is given by Set-Cookie).
+
+  parameters:
+    methodOverride:
+      name: X-Http-Method-Override
+      in: header
+      required: false
+      schema: { type: string, enum: [GET] }
+      description: Send the request as POST with this header set to GET to keep OData options out of the URL (body `{"Value":"?$select=..."}`).
+    methodOverrideRequired:
+      name: X-Http-Method-Override
+      in: header
+      required: true
+      schema: { type: string, enum: [GET] }
+      description: Required; the request is a read sent as POST.
+    odataFilter: { name: $filter, in: query, required: false, schema: { type: string }, description: "OData filter, e.g. `SequentialId eq 3`, `Name eq 'Policies'`." }
+    odataSelect: { name: $select, in: query, required: false, schema: { type: string }, description: "Comma-separated properties to project." }
+    odataTop: { name: $top, in: query, required: false, schema: { type: integer } }
+    odataSkip: { name: $skip, in: query, required: false, schema: { type: integer } }
+    odataOrderby: { name: $orderby, in: query, required: false, schema: { type: string }, description: "`Property [asc|desc]`." }
+    contentIdPath: { name: contentId, in: path, required: true, schema: { type: integer } }
+    applicationId: { name: applicationId, in: path, required: true, schema: { type: integer } }
+    levelId: { name: levelId, in: path, required: true, schema: { type: integer } }
+    fieldId: { name: fieldId, in: path, required: true, schema: { type: integer } }
+    userId: { name: userId, in: path, required: true, schema: { type: integer } }
+    groupId: { name: groupId, in: path, required: true, schema: { type: integer } }
+    valuesListId: { name: valuesListId, in: path, required: true, schema: { type: integer } }
+    securityParameterId: { name: securityParameterId, in: path, required: true, schema: { type: integer } }
+    packageId: { name: packageId, in: path, required: true, schema: { type: integer } }
+    patId: { name: patId, in: path, required: true, schema: { type: integer } }
+    levelAlias: { name: levelAlias, in: path, required: true, schema: { type: string }, description: "Entity set name from Get Endpoints (case-sensitive)." }
+    connectionAlias: { name: connection, in: query, required: true, schema: { type: string, maxLength: 10 }, description: Connection LocationAlias. }
+
+  responses:
+    Unauthorized: { description: Invalid credentials or session. }
+    V2Error:
+      description: OData-style error.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/V2ErrorResponse' }
+    IdResponse:
+      description: Success envelope whose `RequestedObject.Id` is the affected object's ID.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ApiResponse'
+              - properties:
+                  RequestedObject:
+                    type: object
+                    properties: { Id: { type: integer } }
+    JobResponse:
+      description: Asynchronous job queued.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ApiResponse'
+              - properties:
+                  RequestedObject:
+                    type: object
+                    properties: { JobId: { type: string, format: uuid } }
+    ProcessedIdsResponse:
+      description: Processed and rejected IDs (partial success sets `IsSuccessful:false` with validation messages).
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ApiResponse'
+              - properties:
+                  RequestedObject:
+                    type: object
+                    properties:
+                      ProcessedIds: { type: array, items: { type: integer } }
+                      RejectedIds: { type: [array, "null"], items: { type: integer } }
+    GenericObject:
+      description: Single object envelope (shape not detailed in the documentation).
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ApiResponse' }
+    GenericList:
+      description: Array of envelopes (shape not detailed in the documentation).
+      content:
+        application/json:
+          schema:
+            type: array
+            items: { $ref: '#/components/schemas/ApiResponse' }
+    ContentList:
+      description: Array of record envelopes.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              allOf:
+                - $ref: '#/components/schemas/ApiResponse'
+                - properties: { RequestedObject: { $ref: '#/components/schemas/Content' } }
+    ApplicationList:
+      description: Applications.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              allOf:
+                - $ref: '#/components/schemas/ApiResponse'
+                - properties: { RequestedObject: { $ref: '#/components/schemas/Application' } }
+    ApplicationSingle:
+      description: Application.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ApiResponse'
+              - properties: { RequestedObject: { $ref: '#/components/schemas/Application' } }
+    FieldDefinitionList:
+      description: Field definitions.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              allOf:
+                - $ref: '#/components/schemas/ApiResponse'
+                - properties: { RequestedObject: { $ref: '#/components/schemas/FieldDefinition' } }
+    FieldDefinitionSingle:
+      description: Field definition.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ApiResponse'
+              - properties: { RequestedObject: { $ref: '#/components/schemas/FieldDefinition' } }
+    LevelList:
+      description: Levels.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              allOf:
+                - $ref: '#/components/schemas/ApiResponse'
+                - properties: { RequestedObject: { $ref: '#/components/schemas/Level' } }
+    LevelSingle:
+      description: Level.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ApiResponse'
+              - properties: { RequestedObject: { $ref: '#/components/schemas/Level' } }
+    SecurityParameterList:
+      description: Security parameters.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              allOf:
+                - $ref: '#/components/schemas/ApiResponse'
+                - properties: { RequestedObject: { $ref: '#/components/schemas/SecurityParameter' } }
+    SecurityParameterSingle:
+      description: Security parameter.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ApiResponse'
+              - properties: { RequestedObject: { $ref: '#/components/schemas/SecurityParameter' } }
+    ValuesListValueList:
+      description: Values list values.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              allOf:
+                - $ref: '#/components/schemas/ApiResponse'
+                - properties: { RequestedObject: { $ref: '#/components/schemas/ValuesListValue' } }
+    UserList:
+      description: Users.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              allOf:
+                - $ref: '#/components/schemas/ApiResponse'
+                - properties: { RequestedObject: { $ref: '#/components/schemas/User' } }
+    UserSingle:
+      description: User.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ApiResponse'
+              - properties: { RequestedObject: { $ref: '#/components/schemas/User' } }
+    GroupList:
+      description: Groups.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              allOf:
+                - $ref: '#/components/schemas/ApiResponse'
+                - properties: { RequestedObject: { $ref: '#/components/schemas/Group' } }
+    GroupSingle:
+      description: Group.
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ApiResponse'
+              - properties: { RequestedObject: { $ref: '#/components/schemas/Group' } }
+    RoleList:
+      description: Roles.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              allOf:
+                - $ref: '#/components/schemas/ApiResponse'
+                - properties: { RequestedObject: { $ref: '#/components/schemas/AccessRole' } }
+
+  schemas:
+    # ---- envelope
+    ApiResponse:
+      type: object
+      description: Standard Platform API envelope. Check `IsSuccessful`; HTTP 200 does not imply success.
+      properties:
+        Links: { type: array, items: { type: object } }
+        RequestedObject: { description: The payload; type varies per operation. }
+        IsSuccessful: { type: boolean }
+        ValidationMessages:
+          type: [array, "null"]
+          items: { $ref: '#/components/schemas/ValidationMessage' }
+    ValidationMessage:
+      type: object
+      properties:
+        Reason: { type: string }
+        Severity: { type: integer, description: "Observed: 2 warning/partial, 3 error, 4 not found." }
+        MessageKey: { type: string, example: "ValidationMessageTemplates:ContentSaveNoContentsFound" }
+        Description: { type: string }
+        Location: { type: integer }
+        ErroredValue: { type: [string, "null"] }
+        Validator: { type: string }
+        XmlData: { type: [string, "null"] }
+        ResourcedMessage: { type: string }
+        ContentIndex: { type: integer }
+        ConflictContent: { type: [object, "null"] }
+    V2ErrorResponse:
+      type: object
+      properties:
+        "@odata.context": { type: string }
+        "@odata.type": { type: string, example: "#ArcherTech.Web.Api.V2.OData.Error.CustomErrorResponse" }
+        HttpStatus: { type: integer }
+        InternalMessage: { type: string }
+        Type: { type: string, example: Warning }
+        ValidationErrors: { type: array, items: { type: object } }
+        Metadata: { type: [object, "null"] }
+    ODataQueryBody:
+      type: object
+      description: Body form of OData options for POST + X-Http-Method-Override reads.
+      properties:
+        Value: { type: string, example: "?$top=50&$skip=100&$select=Name,Description&$orderby=Name desc" }
+    GuidBody:
+      type: object
+      properties: { Guid: { type: string, format: uuid } }
+      required: [Guid]
+    UpdateInformation:
+      type: object
+      properties:
+        CreateDate: { type: [string, "null"], format: date-time }
+        UpdateDate: { type: [string, "null"], format: date-time }
+        CreateLogin: { type: [integer, "null"] }
+        UpdateLogin: { type: [integer, "null"] }
+
+    # ---- auth
+    LoginRequest:
+      type: object
+      properties:
+        InstanceName: { type: string, description: Archer instance name (Control Panel). }
+        Username: { type: string }
+        UserDomain: { type: string, description: Empty for non-domain users. }
+        Password: { type: string, format: password }
+      required: [InstanceName, Username, Password]
+    SessionContext:
+      type: object
+      properties:
+        SessionToken: { type: string, description: 32-char hex token. }
+    PatCreateRequest:
+      type: object
+      properties:
+        UserId: { type: integer }
+        Name: { type: string }
+        Description: { type: string }
+        ExpirationDate: { type: string, format: date, description: "yyyy-MM-dd, 1 day to 1 year ahead." }
+      required: [UserId, Name, ExpirationDate]
+    PatRotateRequest:
+      type: object
+      properties:
+        expirationDate: { type: string, format: date, description: Optional new expiry (yyyy-MM-dd). }
+    PersonalAccessToken:
+      type: object
+      properties:
+        Token: { type: string, description: Present only on create/rotate responses. }
+        Id: { type: integer }
+        IsRevoked: { type: boolean }
+        UserId: { type: integer }
+        ExpirationDate: { type: string }
+        Name: { type: string }
+        Description: { type: string }
+        CreateDate: { type: string, format: date-time }
+
+    # ---- content
+    FieldType:
+      type: integer
+      description: |
+        Field type IDs used in `FieldContent.Type` and `FieldDefinition.Type`.
+        1 Text, 2 Numeric, 3 Date, 4 Values List, 6 Tracking ID, 7 External Links, 8 Users/Groups List
+        (also Record Permissions), 9 Cross-Reference, 11 Attachment, 12 Image, 14 CAST, 16 Matrix,
+        19 IP Address, 20 Record Status, 21 First Published, 22 Last Updated, 23 Related Records,
+        24 Sub-Form, 25 History Log, 27 Multiple Reference Display Control, 28 Questionnaire Reference,
+        29 Access History, 30 Voting, 31 Scheduler, 1001 CAST Field Value.
+        Writable via Post/Put content: 1, 2, 3, 4, 7, 8, 9, 11, 12, 16, 19, 23, 24.
+      enum: [1, 2, 3, 4, 6, 7, 8, 9, 11, 12, 14, 16, 19, 20, 21, 22, 23, 24, 25, 27, 28, 29, 30, 31, 1001]
+    ContentWrapper:
+      type: object
+      properties:
+        Content: { $ref: '#/components/schemas/Content' }
+        SubformFieldId: { type: integer, description: Only when saving sub-form content. }
+      required: [Content]
+    Content:
+      type: object
+      properties:
+        Id: { type: integer, description: Content ID (omit on create). }
+        LevelId: { type: integer }
+        SequentialId: { type: integer, readOnly: true }
+        FieldContents:
+          type: object
+          description: Keyed by field ID (as string).
+          additionalProperties: { $ref: '#/components/schemas/FieldContent' }
+        Version: { type: [string, integer, "null"] }
+        CheckSum: { type: [string, "null"], readOnly: true }
+        LastUpdated: { type: string, format: date-time, readOnly: true }
+        Identity: { type: object, readOnly: true, description: BaseContentId and data-gateway Locators. }
+        UpdateInformation: { $ref: '#/components/schemas/UpdateInformation' }
+      required: [LevelId, FieldContents]
+    FieldContent:
+      type: object
+      description: |
+        One field value. `Value` shape depends on `Type`:
+        1 string (plain or HTML) · 2 number · 3 date string ("2016-12-14", "2014-03-06T21:30:00",
+        "10/21/1956 11:59AM"; "0" = null) · 4 `{ValuesListIds:[int], OtherText}` (`{0}` = null) ·
+        7 `[{Name, Url}]` · 8 `{UserList:[{Id}], GroupList:[{Id}]}` · 9 `[{ContentId}]` ·
+        11/12 `[attachmentId]` · 16 `[{RowId, ColumnId}]` · 19 no Value: `IpAddressBytes:"127.0.0.1"`
+        (no extra properties allowed) · 23 `[contentId]` · 24 `[subformContentId]`.
+        `Tag` is an optional free-text label ignored by the server (do not use with Type 19).
+        Omitting a field leaves it unchanged (or null on create). Responses add `IsError` and
+        `UpdateInformation`.
+      properties:
+        Type: { $ref: '#/components/schemas/FieldType' }
+        FieldId: { type: integer }
+        Tag: { type: string }
+        Value:
+          oneOf:
+            - { type: string }
+            - { type: number }
+            - { $ref: '#/components/schemas/ValuesListValueInput' }
+            - { type: array, items: { $ref: '#/components/schemas/ExternalLink' } }
+            - { $ref: '#/components/schemas/UsersGroupsValue' }
+            - { type: array, items: { type: object, properties: { ContentId: { type: integer } } } }
+            - { type: array, items: { type: integer } }
+            - { type: array, items: { type: object, properties: { RowId: { type: integer }, ColumnId: { type: integer } } } }
+            - { type: "null" }
+        IpAddressBytes: { type: string, description: Type 19 only. }
+        IsError: { type: boolean, readOnly: true }
+        UpdateInformation: { $ref: '#/components/schemas/UpdateInformation' }
+      required: [Type, FieldId]
+    ValuesListValueInput:
+      type: object
+      properties:
+        ValuesListIds: { type: array, items: { type: integer } }
+        OtherText: { type: [string, "null"] }
+    ExternalLink:
+      type: object
+      properties: { Name: { type: string }, Url: { type: string } }
+    UsersGroupsValue:
+      type: object
+      properties:
+        UserList: { type: [array, "null"], items: { type: object, properties: { Id: { type: integer } } } }
+        GroupList: { type: [array, "null"], items: { type: object, properties: { Id: { type: integer } } } }
+    AttachmentWrapper:
+      type: object
+      properties:
+        AttachmentName: { type: string }
+        AttachmentBytes: { type: string, format: byte, description: Base64 file contents. }
+        IsSensitive: { type: boolean, description: true = store encrypted. }
+      required: [AttachmentName, AttachmentBytes]
+    DeletedContentResponse:
+      type: object
+      properties:
+        TotalRecords: { type: integer }
+        RecordsShown: { type: integer }
+        DeletedContents:
+          type: array
+          items:
+            type: object
+            properties:
+              ContentId: { type: integer }
+              DeletedDateTime: { type: string, format: date-time }
+              UserId: { type: integer }
+              ModuleId: { type: integer }
+              LevelId: { type: integer }
+    WorkflowActions:
+      type: object
+      properties:
+        WorkflowNodeId: { type: string, example: "18304:CUST" }
+        WorkflowNodeName: { type: string }
+        JobStatus: { type: string, example: Running }
+        Actions:
+          type: array
+          items:
+            type: object
+            properties:
+              WorkflowTransitionId: { type: string }
+              WorkflowTransitionName: { type: string }
+              CompletionCode: { type: integer }
+    DataFeedRun:
+      type: object
+      description: Run history record (property names per documentation prose; verify against your instance).
+      properties:
+        Status: { type: integer, description: 1 Running, 2 Completed, 3 Faulted, 4 Warning, 5 Terminating, 6 Terminated, 7 Pending. }
+      additionalProperties: true
+
+    # ---- data gateway
+    DataGatewayConnector:
+      type: object
+      properties:
+        ConnectorType: { type: string, example: ArcherTech.Datasource.Content.GenericSql.GenericSqlDataSource }
+        Properties:
+          type: array
+          description: Connector-specific name/value pairs (Flexible SQL Connector uses dbProviderType, connectionString, tableName, idColumnName, idColumnType).
+          items:
+            type: object
+            properties: { Name: { type: string }, Value: { type: string } }
+    DataGatewayConnectionRequest:
+      type: object
+      properties:
+        TargetId: { type: integer, description: Level ID. }
+        Connection:
+          type: object
+          properties:
+            Id: { type: integer, description: Required on edit. }
+            LocationAlias: { type: string, maxLength: 10 }
+            DatagatewayConnector: { $ref: '#/components/schemas/DataGatewayConnector' }
+    DataGatewayConnectionInfo:
+      type: object
+      properties:
+        TargetId: { type: integer }
+        TargetName: { type: string }
+        Connection:
+          type: object
+          properties:
+            Id: { type: integer }
+            LocationAlias: { type: string }
+            LastUpdated: { type: string, format: date-time }
+            DatagatewayConnector: { $ref: '#/components/schemas/DataGatewayConnector' }
+    DataGatewayFieldMapRequest:
+      type: object
+      properties:
+        TargetId: { type: integer }
+        Connections:
+          type: array
+          items:
+            type: object
+            properties:
+              Name: { type: string, maxLength: 10 }
+              FieldMapping:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    SourceFieldId: { type: string, maxLength: 256, description: Omit to revert the field to Archer storage. }
+                    ArcherFieldId: { type: integer }
+    DataGatewayModuleFieldMaps:
+      type: object
+      properties:
+        ModuleId: { type: integer }
+        ModuleName: { type: string }
+        DataGatewayFieldMaps:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/DataGatewayFieldMapRequest'
+              - properties: { TargetName: { type: string } }
+    DataGatewayContentMaps:
+      type: object
+      properties:
+        TargetId: { type: integer }
+        LocationAlias: { type: string, maxLength: 10 }
+        ContentMaps:
+          type: array
+          items:
+            type: object
+            properties:
+              TrackingId: { type: integer, description: Archer content ID. }
+              ContentPartId: { type: string, maxLength: 100, description: External record key. }
+
+    # ---- metadata
+    Application:
+      type: object
+      properties:
+        Id: { type: integer }
+        Name: { type: string }
+        Alias: { type: string }
+        Guid: { type: string }
+        Description: { type: [string, "null"] }
+        KeepLicensed: { type: boolean }
+        IsDeprecated: { type: boolean }
+        UpdateInformation: { $ref: '#/components/schemas/UpdateInformation' }
+      additionalProperties: true
+    Level:
+      type: object
+      properties:
+        Id: { type: integer }
+        ModuleId: { type: integer }
+        Name: { type: string }
+        Alias: { type: string }
+        Guid: { type: string }
+        IsDeleted: { type: boolean }
+      additionalProperties: true
+    FieldDefinition:
+      type: object
+      properties:
+        Id: { type: integer }
+        LevelId: { type: integer }
+        Type: { $ref: '#/components/schemas/FieldType' }
+        Name: { type: string }
+        Alias: { type: string }
+        IsActive: { type: boolean }
+        Guid: { type: string }
+        ASOStatus: { type: integer }
+        SystemType: { type: integer }
+        IsPrivate: { type: boolean }
+        IsContentReadOnly: { type: boolean }
+        IsRequired: { type: boolean }
+        IsCalculated: { type: boolean }
+        EsFieldMappingId: { type: [integer, "null"] }
+        RelatedValuesListId: { type: integer, description: Values List fields only. }
+        UpdateInformation: { $ref: '#/components/schemas/UpdateInformation' }
+        FieldMap: { type: [object, "null"] }
+      additionalProperties: true
+    ValuesListValue:
+      type: object
+      properties:
+        Id: { type: integer }
+        Name: { type: string }
+        ValuesListId: { type: integer }
+        ParentId: { type: [integer, "null"] }
+        NumericValue: { type: [number, "null"] }
+        IsSelectable: { type: boolean }
+        SortOrder: { type: integer }
+        Guid: { type: string }
+        Children: { type: array, items: { $ref: '#/components/schemas/ValuesListValue' }, description: Hierarchical form only. }
+      additionalProperties: true
+    SecurityParameter:
+      type: object
+      properties:
+        Id: { type: integer }
+        Alias: { type: string }
+        GUID: { type: string }
+        Name: { type: string }
+        Description: { type: string }
+        MinPasswordLength: { type: integer }
+        AlphaCharsRequired: { type: integer }
+        NumericCharsRequired: { type: integer }
+        UppercaseCharsRequired: { type: integer }
+        LowercaseCharsRequired: { type: integer }
+        SpecialCharsRequired: { type: integer }
+        PasswordChangeInterval: { type: integer }
+        PasswordChangeLimit: { type: boolean }
+        GraceLogins: { type: integer }
+        MaximumFailedLoginAttempts: { type: integer }
+        PreviousPasswordsDisallowed: { type: integer }
+        LockoutPeriod: { type: integer }
+        LockoutPeriodType: { type: integer, description: 1 Hours, 2 Minutes, 3 Days }
+        SessionTimeout: { type: integer }
+        SessionTimeoutType: { type: integer, description: 1 Hours, 2 Minutes, 3 Days }
+        StaticSessionTimeout: { type: [integer, "null"] }
+        PasswordExpirationNotice: { type: integer }
+        AutomaticAccountDeactivation: { type: integer }
+        IsLimitByTimeFrame: { type: boolean }
+        PermittedFromTime: { type: string }
+        PermittedToTime: { type: string }
+        IsDisallowedByDays: { type: boolean }
+        DisallowedSessionDays: { type: array, items: { type: integer }, description: Bit flags 1 Sun, 2 Mon, 4 Tue, 8 Wed, 16 Thu, 32 Fri, 64 Sat. }
+        IsDisallowedByDates: { type: boolean }
+        DisallowedDates: { type: array, items: { type: object, properties: { LockedDate: { type: string } } } }
+        Default: { type: boolean }
+        TimeZoneCode: { type: string, example: Central Standard Time }
+        SecurityParameterType: { type: integer }
+      required: [Name]
+
+    # ---- users / groups / roles
+    User:
+      type: object
+      properties:
+        Id: { type: integer }
+        DisplayName: { type: string, readOnly: true }
+        FirstName: { type: string }
+        MiddleName: { type: [string, "null"] }
+        LastName: { type: string }
+        UserName: { type: string }
+        LastLoginDate: { type: [string, "null"], format: date-time, readOnly: true }
+        AccountStatus: { type: integer, description: 1 Active, 2 Inactive, 3 Locked }
+        DomainId: { type: [integer, "null"] }
+        SecurityId: { type: integer, description: Security parameter ID. }
+        Locale: { type: [string, "null"], example: en-US }
+        TimeZoneId: { type: string, example: Eastern Standard Time }
+        Address: { type: [string, "null"] }
+        Company: { type: [string, "null"] }
+        Title: { type: [string, "null"] }
+        AdditionalNote: { type: [string, "null"] }
+        BusinessUnit: { type: [string, "null"] }
+        Department: { type: [string, "null"] }
+        ForcePasswordChange: { type: boolean }
+        DistinguishedName: { type: [string, "null"] }
+        Type: { type: integer }
+        LanguageId: { type: [integer, "null"] }
+        DefaultHomeDashboardId: { type: [integer, "null"] }
+        DefaultHomeWorkspaceId: { type: [integer, "null"] }
+        EnableApproveContentByEmail: { type: boolean }
+        UpdateInformation: { $ref: '#/components/schemas/UpdateInformation' }
+    UserWrapper:
+      type: object
+      properties:
+        User: { $ref: '#/components/schemas/User' }
+        Password: { type: string, format: password, description: Required on create. }
+        Notification: { type: boolean, description: Send the new-account notification email. }
+        Contacts: { type: [array, "null"], items: { $ref: '#/components/schemas/Contact' } }
+        Roles: { type: [array, "null"], items: { type: integer } }
+        Groups: { type: [array, "null"], items: { type: integer } }
+      required: [User]
+    Contact:
+      type: object
+      properties:
+        Id: { type: integer, readOnly: true }
+        ContactType: { type: integer, description: 7 Email, 9 Phone }
+        ContactSubType: { type: integer, description: "1 Assistant, 2 Business, 3 Business2, 4 Business Fax, 5 Home, 6 Home2, 7 Home Fax, 8 ISDN, 9 Mobile, 10 Mobile2, 11 Other, 12 Other2, 13 Other Fax, 14 Pager (email allows 2,3,5,6,9,10,11,12,14)." }
+        Value: { type: string }
+        IsDefault: { type: boolean }
+    Task:
+      type: object
+      properties:
+        TaskId: { type: integer }
+        Title: { type: string }
+        Description: { type: string }
+        DueDate: { type: string, format: date-time }
+        IsComplete: { type: boolean }
+        TargetContentId: { type: integer }
+    Group:
+      type: object
+      properties:
+        Id: { type: integer }
+        Name: { type: string }
+        DisplayName: { type: string, readOnly: true }
+        Description: { type: [string, "null"] }
+        EveryoneFlag: { type: boolean }
+        Guid: { type: string }
+        SystemFlag: { type: boolean }
+        LdapFlag: { type: boolean }
+        DomainId: { type: [integer, "null"] }
+        DistinguishedName: { type: [string, "null"] }
+        DefaultHomeDashboardId: { type: [integer, "null"] }
+        DefaultHomeWorkspaceId: { type: [integer, "null"] }
+        UpdateInformation: { $ref: '#/components/schemas/UpdateInformation' }
+    GroupWrapper:
+      type: object
+      properties:
+        Group: { $ref: '#/components/schemas/Group' }
+        ParentGroups: { type: [array, "null"], items: { type: integer } }
+        ChildGroups: { type: [array, "null"], items: { type: integer } }
+        ChildUsers: { type: [array, "null"], items: { type: integer } }
+      required: [Group]
+    AccessRole:
+      type: object
+      properties:
+        Id: { type: integer }
+        Name: { type: string }
+        Alias: { type: string }
+        Description: { type: [string, "null"] }
+        IsDefault: { type: boolean }
+      additionalProperties: true
+    AccessRoleTask:
+      type: object
+      properties:
+        TaskId: { type: [integer, string] }
+        HasCreate: { type: boolean }
+        HasRead: { type: boolean }
+        HasUpdate: { type: boolean }
+        HasDelete: { type: boolean }
+    RoleWrapper:
+      type: object
+      properties:
+        AccessRole: { $ref: '#/components/schemas/AccessRole' }
+        GroupIds: { type: [array, "null"], items: { type: integer } }
+        AccessRoleTasks: { type: [array, "null"], items: { $ref: '#/components/schemas/AccessRoleTask' } }
+      required: [AccessRole]
+
+    # ---- packages
+    PackageObject:
+      type: object
+      properties:
+        Guid: { type: string }
+        Name: { type: string }
+        Type: { type: string, example: Application, description: "Application, Questionnaire, SubForm, GlobalReport, ... (as shown by the UI-generated code)" }
+    PackageCreateRequest:
+      type: object
+      properties:
+        Name: { type: string }
+        Description: { type: string }
+        PreparedBy: { type: string }
+        PackageObjects: { type: array, items: { $ref: '#/components/schemas/PackageObject' } }
+      required: [Name, PackageObjects]
+    PackageInstallRequest:
+      type: object
+      properties:
+        PackageId: { type: integer }
+        InactivateUnusedFields: { type: boolean }
+        PrefixInactivatedFields: { type: [string, "null"] }
+        InstallOptions:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/PackageObject'
+              - properties:
+                  TranslationOption: { type: integer }
+                  InstallMethod: { type: integer }
+                  InstallOption: { type: integer }
+      required: [PackageId, InstallOptions]
+
+    # ---- reports
+    SecurityEvent:
+      type: object
+      properties:
+        Event: { type: string }
+        InitiatingUser: { type: string }
+        Timestamp: { type: string, format: date-time }
+        EventDetails: { type: string }
+    AdministrationActivityLog:
+      type: object
+      properties:
+        InitiatingUser: { type: string }
+        UserId: { type: [integer, "null"] }
+        ModuleId: { type: integer }
+        ModuleName: { type: [string, "null"] }
+        LevelId: { type: integer }
+        LevelName: { type: string }
+        ObjectName: { type: [string, "null"] }
+        ActionType: { type: string }
+        PropertyName: { type: string }
+        NewValue: { type: string }
+        OldValue: { type: string }
+        Timestamp: { type: string, format: date-time }
+        SectionName: { type: string }
+
+    # ---- content api
+    ODataServiceDocument:
+      type: object
+      properties:
+        "@odata.context": { type: string }
+        value:
+          type: array
+          items:
+            type: object
+            properties:
+              name: { type: string }
+              kind: { type: string, example: EntitySet }
+              url: { type: string }
+    ODataCollection:
+      type: object
+      properties:
+        "@odata.context": { type: string }
+        value:
+          type: array
+          items: { type: object, additionalProperties: true }

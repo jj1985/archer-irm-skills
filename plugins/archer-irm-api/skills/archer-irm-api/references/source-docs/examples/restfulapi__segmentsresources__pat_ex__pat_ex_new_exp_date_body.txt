@@ -1,0 +1,6 @@
+// Optional: To set a new expiration date
+{
+"expirationDate": "2026-01-15" // yyyy-MM-dd format
+}
+// Or, to use default expiration behavior:
+{}

@@ -1,0 +1,11 @@
+{
+	"LocationAlias": "STIG_DATA",
+	"ContentMaps": [
+		{
+			"TrackingId": 249457
+		},
+		{
+			"TrackingId": 249456
+		}
+	]
+}

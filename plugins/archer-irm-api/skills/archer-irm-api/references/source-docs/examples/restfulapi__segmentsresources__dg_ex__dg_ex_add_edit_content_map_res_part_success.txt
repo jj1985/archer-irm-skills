@@ -1,0 +1,24 @@
+{
+	"RequestedObject": {
+		"ProcessedIds": [
+			249457
+		],
+		"RejectedIds": [
+			249458
+		]
+	},
+	"IsSuccessful": true,
+	"ValidationMessages": [
+		{
+			"Reason": "Validation",
+			"Severity": 2,
+			"MessageKey": "ValidationMessageTemplates:InvalidDatagatewayLevelContentMapping",
+			"Description": "TargetId: 328 does not contain following contents: 249458",
+			"Location": -1,
+			"ErroredValue": null,
+			"Validator": "ArcherTech.Kernel.Brokers.Integration.DataGatewayBroker, ArcherTech.Kernel, Version=9.9.84.1043, Culture=neutral, PublicKeyToken=null",
+			"XmlData": "<ROOT><LevelId order=\"1\">328</LevelId><ContentIds order=\"2\">249458</ContentIds></ROOT>",
+			"ResourcedMessage": "TargetId: 328 does not contain following contents: 249458"
+		}
+	]
+}

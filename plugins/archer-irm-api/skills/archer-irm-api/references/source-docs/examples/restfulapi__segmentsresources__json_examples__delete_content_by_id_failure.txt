@@ -1,0 +1,19 @@
+{
+   "Links": [],
+   "RequestedObject": null,
+   "IsSuccessful": false,
+   "ValidationMessages": [
+    {
+      "ContentIndex": 0,
+      "ConflictContent": null,
+      "Reason": "",
+      "Severity": 4,
+      "MessageKey": "ValidationMessageTemplates:ContentSaveNoContentsFound",
+      "Description": "Specified content does not exist in the system. ContentIds: 184630",
+      "Location": -1,
+      "ErroredValue": null,
+      "Validator": "ArcherTech.Kernel.Brokers.ContentBroker",
+      "XmlData": null,
+      "ResourcedMessage": "The specified content does not exist in the system."
+  }]
+}

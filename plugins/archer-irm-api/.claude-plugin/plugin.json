@@ -1,0 +1,13 @@
+{
+  "name": "archer-irm-api",
+  "version": "1.0.0",
+  "description": "Skill for working with the Archer IRM (formerly RSA Archer) platform APIs: RESTful Platform API, V2 API (Personal Access Tokens, DeletedContent), Content API (OData), Data Gateway, SOAP Web Services API and NGRX. Includes an OpenAPI 3.1 spec, endpoint and field-type references, a full documentation snapshot, and dependency-free Python REST and SOAP clients.",
+  "author": {
+    "name": "jj1985",
+    "url": "https://github.com/jj1985"
+  },
+  "homepage": "https://github.com/jj1985/archer-irm-skills",
+  "repository": "https://github.com/jj1985/archer-irm-skills",
+  "license": "MIT",
+  "keywords": ["archer", "archer-irm", "rsa-archer", "grc", "irm", "rest-api", "soap", "odata", "openapi", "integration"]
+}

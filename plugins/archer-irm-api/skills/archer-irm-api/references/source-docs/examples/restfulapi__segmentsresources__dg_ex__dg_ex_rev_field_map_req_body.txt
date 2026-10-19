@@ -1,0 +1,15 @@
+{
+    "TargetId": 375,
+    "Connections": [{
+        "Name": "ARCHER",      
+        "FieldMapping": [{
+            "ArcherFieldId": 22404
+        }, {
+            ArcherFieldId": 22405
+        }, {
+            "ArcherFieldId": 22406
+        }, {
+            "ArcherFieldId": 22407
+        }]
+    }]
+}

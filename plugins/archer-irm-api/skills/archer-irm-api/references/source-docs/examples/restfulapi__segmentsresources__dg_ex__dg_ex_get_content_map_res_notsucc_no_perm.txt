@@ -1,0 +1,17 @@
+{
+	"RequestedObject": null,
+	"IsSuccessful": false,
+	"ValidationMessages": [
+		{
+			"Reason": "Validation",
+			"Severity": 3,
+			"MessageKey": "ValidationMessageTemplates:InsufficientPermission",
+			"Description": "",
+			"Location": -1,
+			"ErroredValue": null,
+			"Validator": "ArcherTech.Kernel.Brokers.Integration.DataGatewayBroker, ArcherTech.Kernel, Version=9.9.84.1044, Culture=neutral, PublicKeyToken=null",
+			"XmlData": null,
+			"ResourcedMessage": "The user has insufficient permissions for this action."
+		}
+	]
+}

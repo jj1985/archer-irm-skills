@@ -1,0 +1,7 @@
+{
+	"RequestedObject": {
+		"JobId": "50c9dd69-f05e-4cb8-b15b-3f4b51dab51f"
+	},
+	"IsSuccessful": true,
+	"ValidationMessages": null
+}

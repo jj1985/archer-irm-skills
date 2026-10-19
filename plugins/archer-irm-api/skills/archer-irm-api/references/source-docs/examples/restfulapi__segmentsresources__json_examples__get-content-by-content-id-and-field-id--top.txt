@@ -1,0 +1,194 @@
+[
+    {
+        "Links": [],
+        "RequestedObject": {
+            "Id": 184630,
+            "LevelId": 344,
+            "SequentialId": 1,
+            "FieldContents": {
+                "18503": {
+                    "Type": 6,
+                    "FieldId": 18503,
+                    "UpdateInformation": {
+                        "CreateDate": null,
+                        "UpdateDate": null,
+                        "CreateLogin": null,
+                        "UpdateLogin": null
+                    }
+                },
+                "18504": {
+                    "Type": 21,
+                    "FieldId": 18504,
+                    "UpdateInformation": {
+                        "CreateDate": null,
+                        "UpdateDate": null,
+                        "CreateLogin": null,
+                        "UpdateLogin": null
+                    }
+                },
+                "18505": {
+                    "Type": 22,
+                    "FieldId": 18505,
+                    "UpdateInformation": {
+                        "CreateDate": null,
+                        "UpdateDate": null,
+                        "CreateLogin": null,
+                        "UpdateLogin": null
+                    }
+                },
+                "18506": {
+                    "Type": 1,
+                    "IsError": false,
+                    "Value": "Jane",
+                    "FieldId": 18506,
+                    "UpdateInformation": {
+                        "CreateDate": null,
+                        "UpdateDate": null,
+                        "CreateLogin": null,
+                        "UpdateLogin": null
+                    }
+                },
+                "18507": {
+                    "Type": 1,
+                    "IsError": false,
+                    "Value": "Doe",
+                    "FieldId": 18507,
+                    "UpdateInformation": {
+                        "CreateDate": null,
+                        "UpdateDate": null,
+                        "CreateLogin": null,
+                        "UpdateLogin": null
+                    }
+                }
+            },
+            "CheckSum": null,
+            "LastUpdated": "2019-12-06T21:09:46.137",
+            "Version": 1,
+            "Identity": {
+                "BaseContentId": 184630,
+                "Locators": [
+                    {
+                        "Identity": {
+                            "Value": 184630
+                        },
+                        "Location": {
+                            "Alias": "SYS_REF"
+                        }
+                    },
+                    {
+                        "Identity": {
+                            "Value": 184630
+                        },
+                        "Location": {
+                            "Alias": "ARCHER"
+                        }
+                    }
+                ]
+            },
+            "UpdateInformation": {
+                "CreateDate": "2019-12-06T21:09:46.137",
+                "UpdateDate": "2019-12-06T21:09:46.137",
+                "CreateLogin": 2,
+                "UpdateLogin": 2
+            }
+        },
+        "IsSuccessful": true,
+        "ValidationMessages": []
+    },
+    {
+        "Links": [],
+        "RequestedObject": {
+            "Id": 184631,
+            "LevelId": 344,
+            "SequentialId": 2,
+            "FieldContents": {
+                "18503": {
+                    "Type": 6,
+                    "FieldId": 18503,
+                    "UpdateInformation": {
+                        "CreateDate": null,
+                        "UpdateDate": null,
+                        "CreateLogin": null,
+                        "UpdateLogin": null
+                    }
+                },
+                "18504": {
+                    "Type": 21,
+                    "FieldId": 18504,
+                    "UpdateInformation": {
+                        "CreateDate": null,
+                        "UpdateDate": null,
+                        "CreateLogin": null,
+                        "UpdateLogin": null
+                    }
+                },
+                "18505": {
+                    "Type": 22,
+                    "FieldId": 18505,
+                    "UpdateInformation": {
+                        "CreateDate": null,
+                        "UpdateDate": null,
+                        "CreateLogin": null,
+                        "UpdateLogin": null
+                    }
+                },
+                "18506": {
+                    "Type": 1,
+                    "IsError": false,
+                    "Value": "John",
+                    "FieldId": 18506,
+                    "UpdateInformation": {
+                        "CreateDate": null,
+                        "UpdateDate": null,
+                        "CreateLogin": null,
+                        "UpdateLogin": null
+                    }
+                },
+                "18507": {
+                    "Type": 1,
+                    "IsError": false,
+                    "Value": "Smith",
+                    "FieldId": 18507,
+                    "UpdateInformation": {
+                        "CreateDate": null,
+                        "UpdateDate": null,
+                        "CreateLogin": null,
+                        "UpdateLogin": null
+                    }
+                }
+            },
+            "CheckSum": null,
+            "LastUpdated": "2019-12-06T21:10:17.817",
+            "Version": 1,
+            "Identity": {
+                "BaseContentId": 184631,
+                "Locators": [
+                    {
+                        "Identity": {
+                            "Value": 184631
+                        },
+                        "Location": {
+                            "Alias": "SYS_REF"
+                        }
+                    },
+                    {
+                        "Identity": {
+                            "Value": 184631
+                        },
+                        "Location": {
+                            "Alias": "ARCHER"
+                        }
+                    }
+                ]
+            },
+            "UpdateInformation": {
+                "CreateDate": "2019-12-06T21:10:17.817",
+                "UpdateDate": "2019-12-06T21:10:17.817",
+                "CreateLogin": 2,
+                "UpdateLogin": 2
+            }
+        },
+        "IsSuccessful": true,
+        "ValidationMessages": []
+    }
+]

@@ -1,0 +1,18 @@
+﻿{
+    "Links": [],
+    "RequestedObject": null,
+    "IsSuccessful": false,
+    "ValidationMessages": [
+        {
+            "Reason": "",
+            "Severity": 3,
+            "MessageKey": "InvalidRequestPage:InvalidRequest",
+            "Description": "The request contains invalid parameter value: All vents",
+            "Location": -1,
+            "ErroredValue": null,
+            "Validator": "Validation",
+            "XmlData": null,
+            "ResourcedMessage": "Invalid Request"
+        }
+    ]
+}

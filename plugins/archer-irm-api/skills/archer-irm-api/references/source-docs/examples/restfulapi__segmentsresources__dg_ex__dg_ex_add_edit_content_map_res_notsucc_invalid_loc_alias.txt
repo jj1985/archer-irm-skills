@@ -1,0 +1,20 @@
+{
+	"RequestedObject": {
+		"ProcessedIds": null,
+		"RejectedIds": null
+	},
+	"IsSuccessful": false,
+	"ValidationMessages": [
+		{
+			"Reason": "Validation",
+			"Severity": 3,
+			"MessageKey": "ValidationMessageTemplates:AliasNotValid",
+			"Description": "The Location Alias is not valid for this Target",
+			"Location": -1,
+			"ErroredValue": null,
+			"Validator": "ArcherTech.Kernel.Brokers.Integration.DataGatewayBroker, ArcherTech.Kernel, Version=9.9.84.1040, Culture=neutral, PublicKeyToken=null",
+			"XmlData": null,
+			"ResourcedMessage": "Alias is not valid."
+		}
+	]
+}

@@ -1,0 +1,11 @@
+{
+	"RequestedObject": {
+		"ProcessedIds": [
+			22405,
+			22404
+		],
+		"RejectedIds": null
+	},
+	"IsSuccessful": true,
+	"ValidationMessages": []
+}

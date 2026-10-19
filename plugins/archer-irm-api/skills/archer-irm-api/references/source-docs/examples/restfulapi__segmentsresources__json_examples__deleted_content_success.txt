@@ -1,0 +1,20 @@
+{
+	"TotalRecords": 47,
+	"RecordsShown": 47,
+	"DeletedContents": [
+		{
+			"ContentId": 326380,
+			"DeletedDateTime": "2024-07-23T06:21:14.847Z",
+			"UserId": 2,
+			"ModuleId": 1621,
+			"LevelId": 1420
+		},
+		{
+			"ContentId": 326379,
+			"DeletedDateTime": "2024-07-23T06:17:58.563Z",
+			"UserId": 2,
+			"ModuleId": 1621,
+			"LevelId": 1420
+		}
+	]
+}

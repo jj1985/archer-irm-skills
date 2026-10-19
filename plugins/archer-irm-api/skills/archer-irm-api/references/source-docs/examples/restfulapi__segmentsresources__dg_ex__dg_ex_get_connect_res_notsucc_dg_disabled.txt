@@ -1,0 +1,17 @@
+﻿{
+	"RequestedObject": null,
+	"IsSuccessful": false,
+	"ValidationMessages": [
+		{
+			"Reason": "Validation",
+			"Severity": 3,
+			"MessageKey": "ValidationMessageTemplates:DataGatewayNotEnabled",
+			"Description": "Datagateway is not enabled for the instance",
+			"Location": -1,
+			"ErroredValue": null,
+			"Validator": "ArcherTech.Kernel.Brokers.Integration.DataGatewayBroker, ArcherTech.Kernel, Version=9.9.84.1098, Culture=neutral, PublicKeyToken=null",
+			"XmlData": null,
+			"ResourcedMessage": "Data Gateway must be enabled in Archer Control Panel"
+		}
+	]
+}

@@ -1,0 +1,176 @@
+{
+	"Content": {
+		"LevelId": 9,
+		"FieldContents": {
+			"13867": {
+				"Type": 1,
+				"Tag": "Name (Text)",
+				"Value": "Record created via REST API",
+				"FieldId": 13867
+			},
+			"13868": {
+				"Type": 1,
+				"Tag": "Description (Text)",
+				"Value": "<p>This is a Text Area field containing HTML content with different <strong><span style=\"color: #ff0000;\">colors</span> </strong> and <span style=\"font-family: comic sans ms,sans-serif;\"><em><span style=\"font-size: 14pt;\">font </span></em></span><span style=\"font-size: 18pt;\">sizes</span>.  <span style=\"background-color: #ffff00;\">This is highlighted yellow.</span></p>\r\n<p>My bullet points</p>\r\n<ul>\r\n<li>Point 1</li>\r\n<li>Point 2</li>\r\n</ul>\r\n<p>Image via link</p><img src=\"https://community..com/resources/images/palette-1013/-Logo-55px.png\" />",
+				"FieldId": 13868
+			},
+			"13890": {
+				"Type": 2,
+				"Tag": "My Number (Numeric)",
+				"Value": 123.456,
+				"FieldId": 13890
+			},
+			"13888": {
+				"Type": 3,
+				"Tag": "My Date (Date)",
+				"Value": "2016-12-14",
+				"FieldId": 13888
+			},
+			"13999": {
+				"Type": 3,
+				"Tag": "My Date Time (Date)",
+				"Value": "2014-03-06T21:30:00",
+				"FieldId": 13999
+			},
+			"13870": {
+				"Type": 4,
+				"Tag": "Severity (Values List)",
+				"Value": {
+				  "ValuesListIds": [
+					63738,
+					63821
+				  ],
+				  "OtherText": "whatever"
+				},
+				"FieldId": 13870
+			},
+			"14009": {
+				"Type": 7,
+				"Tag": "My URLs (External Links)",
+				"Value": [
+				  {
+					"Name": "",
+					"Url": "https://www..com"
+				  },
+				  {
+					"Name": "Archer Community",
+					"Url": "https://community..com/community/products/archer-grc"
+				  },
+				  {
+					"Name": "Search Archer KBs",
+					"Url": "https://community..com/community/products/archer-grc/knowledge-base"
+				  },
+				  {
+					"Name": "Archer Community discussion about PowerShell and API",
+					"Url": "https://community..com/message/866965"
+				  },
+				  {
+					"Name": "KB 32481 - How to use the Archer REST API with Windows PowerShell",
+					"Url": "https://community..com/docs/DOC-45643"
+				  }
+				],
+				"FieldId": 14009
+			},
+			"13877": {
+				"Type": 8,
+				"Tag": "My Manager (Record Permissions)",
+				"Value": {
+				  "UserList": [
+					{
+					  "Id": 190
+					},
+					{
+					  "Id": 2
+					}
+				  ],
+				  "GroupList": [
+					{
+					  "Id": 19
+					}
+				  ]
+				},
+				"FieldId": 13877
+			},
+			"14538": {
+				"Type": 8,
+				"Tag": "My Users and Groups List (User/Groups List) and Max=1 and select from a limited list",
+				"Value": {
+				  "UserList": null,
+				  "GroupList": [
+					{
+					  "Id": 44
+					}
+				  ]
+				},
+				"FieldId": 14538
+			},
+			"13907": {
+				"Type": 9,
+				"Tag": "My Contacts (Cross-Reference to Contacts)",
+				"Value": [
+				  {
+					"ContentId": 205522
+				  },
+				  {
+					"ContentId": 318794
+				  },
+				  {
+					"ContentId": 325672
+				  }
+				],
+				"FieldId": 13907
+			},
+			"13881": {
+				"Type": 11,
+				"Tag": "Attachments (Attachment)",
+				"Value": [
+				  2068
+				],
+				"FieldId": 13881
+			},
+			13872": {
+				"Type": 12,
+				"Tag": "Screenshot (Image)",
+				"Value": [
+				  2069
+				],
+				"FieldId": 13872
+			},
+			"14088": {
+				"Type": 16,
+				"Tag": "My Matrix (Matrix)",
+				"Value": [
+				  {
+					"RowId": 63880,
+					"ColumnId": 63879
+				  }
+				],
+				"FieldId": 14088
+			}
+			"14410": {
+				"Type": 19,
+				"IpAddressBytes": "127.0.0.1",
+				"FieldId": 14410
+			}
+			"14573": {
+				"Type": 23,
+				"Tag": "Test (Related Records to App)",
+				"Value": [
+				  339014,
+				  338736
+				],
+				"FieldId": 14573
+			}
+			"13886": {
+				"Type": 24,
+				"Tag": "My Sub Forms (Sub-Form)",
+				"Value": [
+				  339019
+				],
+				"FieldId": 13886
+			}
+		}
+		
+	},
+	"SubformFieldId": 123
+}

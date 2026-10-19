@@ -1,0 +1,20 @@
+[
+{
+"Id": 101,
+"IsRevoked": false,
+"UserId": 2,
+"ExpirationDate": "2025-10-20T:00:00:00Z",
+"Name": "User PAT 1",
+"Description": "Token for app A",
+"CreateDate": "2024-10-20T13:32:52.74Z"
+},
+{
+"Id": 102,
+"IsRevoked": false,
+"UserId": 2,
+"ExpirationDate": "2025-11-05T:00:00:00Z",
+"Name": "User PAT 2",
+"Description": "Token for script B",
+"CreateDate": "2024-11-05T13:32:52.74Z"
+}
+]

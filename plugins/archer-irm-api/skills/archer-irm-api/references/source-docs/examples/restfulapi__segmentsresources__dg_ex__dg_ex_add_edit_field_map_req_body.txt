@@ -1,0 +1,47 @@
+{
+	"TargetId": 375,
+	"Connections": [
+		{
+			"Name": "GENERICSQL",
+			"FieldMapping": [
+				{
+					"SourceFieldId": "Column1",
+					"ArcherFieldId": 22404
+				},
+				{
+					"SourceFieldId": "Column2",
+					"ArcherFieldId": 22405
+				},
+				{
+					"SourceFieldId": "Column3",
+					"ArcherFieldId": 22406
+				},
+				{
+					"SourceFieldId": "Column4",
+					"ArcherFieldId": 22407
+				}
+			]
+		},
+		{
+			"Name": "GENERICORCL",
+			"FieldMapping": [
+				{
+					"SourceFieldId": "Column5",
+					"ArcherFieldId": 22806
+				},
+				{
+					"SourceFieldId": "Column6",
+					"ArcherFieldId": 22807
+				},
+				{
+					"SourceFieldId": "Column7",
+					"ArcherFieldId": 22808
+				},
+				{
+					"SourceFieldId": "Column8",
+					"ArcherFieldId": 22809
+				}
+			]
+		}
+	]
+}

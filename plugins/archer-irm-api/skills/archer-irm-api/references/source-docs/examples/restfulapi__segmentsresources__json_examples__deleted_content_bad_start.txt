@@ -1,0 +1,9 @@
+{
+	"@odata.context": "http://{localhost}/Archer/api/V2/Internal/$metadata#ArcherTech.Web.Api.V2.OData.Error.CustomErrorResponse",
+	"@odata.type": "#ArcherTech.Web.Api.V2.OData.Error.CustomErrorResponse",
+	"HttpStatus": 400,
+	"InternalMessage": "Start date must be earlier than or equal to the end date.",
+	"Type": "Warning",
+	"ValidationErrors": [],
+	"Metadata": null
+}
